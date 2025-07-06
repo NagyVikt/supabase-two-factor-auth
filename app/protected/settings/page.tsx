@@ -3,7 +3,8 @@
 import { enrollMFA } from "@/lib/actions/mfa/enrollMfa";
 import { verifyMFA } from "@/lib/actions/mfa/verifyMfa";
 import { unEnrollMFA } from "@/lib/actions/mfa/unEnrollMfa";
-import { useState, use } from "react";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import {
   Card,
@@ -16,12 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function Settings({
-  searchParams,
-}: {
-  searchParams: { message?: string };
-}) {
-  const params = use(searchParams);
+export default function Settings() {
+  const searchParams = useSearchParams();
+  const message = searchParams.get("message");
   const [qrCode, setQrCode] = useState<string | null>(null);
 
   const handleEnroll = async () => {
@@ -79,10 +77,8 @@ export default function Settings({
               </Button>
             </>
           )}
-          {params?.message && (
-            <p className="text-sm text-red-500">{params.message}</p>
-          {searchParams?.message && (
-            <p className="text-sm text-red-500">{searchParams.message}</p>
+          {message && (
+            <p className="text-sm text-red-500">{message}</p>
           )}
         </CardContent>
       </Card>

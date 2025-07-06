@@ -4,7 +4,9 @@
 </a>
 
 <p align="center">
- The fastest way to build apps with Next.js and Supabase
+  The fastest way to build apps with Next.js and Supabase
+  <br/>
+  <em>Forked from the official Next.js <code>with-supabase</code> example with Two-Factor Authentication added.</em>
 </p>
 
 <p align="center">
@@ -30,8 +32,15 @@
 - Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
 - Styling with [Tailwind CSS](https://tailwindcss.com)
 - Components with [shadcn/ui](https://ui.shadcn.com/)
+- Two-factor authentication via authenticator apps
 - Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
   - Environment variables automatically assigned to Vercel project
+
+## Two-Factor Authentication
+
+You can enable MFA under **Settings** after signing in.
+Click **Enable 2FA**, scan the generated QR code in any authenticator app,
+then verify the one-time code to secure your account.
 
 ## Demo
 

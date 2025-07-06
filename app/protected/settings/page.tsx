@@ -110,7 +110,6 @@ export default function Settings() {
       } catch (err) {
         console.error('MFA status error', err)
 
-   
       }
       setLoading(false)
     })()

@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState, FormEvent } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Database } from '@/lib/database.types' // your Supabase typings
+import { createClient } from '@/lib/supabase/client'
 
 // ——— Typed ShadCN‐style UI components (same as before) ———
 type DivProps = React.HTMLAttributes<HTMLDivElement>
@@ -89,7 +88,7 @@ const Badge: React.FC<BadgeProps> = ({ className = '', children, ...props }) => 
 
 // ——— Main Settings component ———
 export default function Settings() {
-  const supabase = createClientComponentClient<Database>()
+  const supabase = createClient()
   const searchParams = useSearchParams()
   const message = searchParams.get('message')
 
@@ -102,6 +101,7 @@ export default function Settings() {
   useEffect(() => {
     ;(async () => {
       setLoading(true)
+      await supabase.auth.getSession()
       const { data, error } = await supabase.auth.mfa.listFactors()
       if (!error) {
         setHasMfa(data.factors.length > 0)

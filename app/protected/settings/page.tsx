@@ -97,30 +97,33 @@ export default function Settings() {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
   const [code, setCode] = useState('')
 
-  // 1) On mount, fetch the user’s enrolled MFA factors
+  // 1) On mount, fetch the user’s enrolled MFA factors via API
   useEffect(() => {
     ;(async () => {
       setLoading(true)
-      await supabase.auth.getSession()
-      const { data, error } = await supabase.auth.mfa.listFactors()
-      if (!error) {
-        setHasMfa(data.factors.length > 0)
-      } else {
-        console.error('MFA list error', error)
+      try {
+        const res = await fetch('/api/mfa/status')
+        if (res.ok) {
+          const json = await res.json()
+          setHasMfa(json.hasMfa)
+        }
+      } catch (err) {
+        console.error('MFA status error', err)
+
+   
       }
       setLoading(false)
     })()
-  }, [supabase])
+  }, [])
 
   // 2) Enroll → get a QR-code URL from Supabase
   const handleEnroll = async () => {
     setLoading(true)
-    const { data, error } = await supabase.auth.mfa.generateAuthenticator()
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
     if (data && !error) {
-      // Supabase gives you a ready‐made PNG‐Data URL
-      setQrCodeUrl(data.qr_code)
+      setQrCodeUrl(data.totp.qr_code)
     } else {
-      console.error('MFA generate error', error)
+      console.error('MFA enroll error', error)
     }
     setLoading(false)
   }
@@ -129,13 +132,29 @@ export default function Settings() {
   const handleVerify = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const { error } = await supabase.auth.mfa.verifyAuthenticator({ token: code })
+    const { data: factorData, error: factorError } = await supabase.auth.mfa.listFactors()
+    if (factorError || !factorData.all.length) {
+      console.error('MFA list error', factorError)
+      setLoading(false)
+      return
+    }
+    const factorId = factorData.all[0].id
+    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
+    if (challengeError) {
+      console.error('MFA challenge error', challengeError)
+      setLoading(false)
+      return
+    }
+    const { error } = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challengeData.id,
+      code,
+    })
     if (!error) {
       setHasMfa(true)
       setQrCodeUrl(null)
     } else {
       console.error('MFA verify error', error)
-      // Optionally: show user an error message
     }
     setLoading(false)
   }
@@ -143,12 +162,19 @@ export default function Settings() {
   // 4) Unenroll → remove MFA
   const handleUnenroll = async () => {
     setLoading(true)
-    const { error } = await supabase.auth.mfa.deleteAuthenticator()
+    const { data, error: listError } = await supabase.auth.mfa.listFactors()
+    if (listError || !data.all.length) {
+      console.error('MFA list error', listError)
+      setLoading(false)
+      return
+    }
+    const factorId = data.all[0].id
+    const { error } = await supabase.auth.mfa.unenroll({ factorId })
     if (!error) {
       setHasMfa(false)
       setQrCodeUrl(null)
     } else {
-      console.error('MFA delete error', error)
+      console.error('MFA unenroll error', error)
     }
     setLoading(false)
   }

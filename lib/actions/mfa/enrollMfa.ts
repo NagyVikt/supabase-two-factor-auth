@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server.server'
 
 export const enrollMFA = async () => {
   const supabase = await createClient()

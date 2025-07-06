@@ -1,52 +1,64 @@
-import { verifyMFA } from "@/lib/actions/mfa/verifyMfa";
+// app/verify-mfa/page.tsx
+'use client';
 
-export default async function MfaVerification({
-  searchParams,
-}: {
-  searchParams: Promise<{ message?: string }>;
-}) {
-  const params = await searchParams;
+import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { verifyMFA } from '@/lib/actions/mfa/verifyMfa';
+
+export default function MfaVerification() {
+  const searchParams = useSearchParams();
+  const message = searchParams.get('message') || undefined;
+  const [showMessage, setShowMessage] = useState(true);
+
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-100">
+        {/* Error alert positioned above title */}
+        {message && showMessage && (
+          <div className="relative mb-6 border border-red-400 bg-red-50 text-red-700 px-4 py-3 rounded-md">
+            <span className="block text-sm">{message}</span>
+            <button
+              type="button"
+              onClick={() => setShowMessage(false)}
+              className="absolute top-1 right-2 text-red-700 hover:text-red-900 text-lg leading-none"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
+        <h2 className="mt-0 text-center text-3xl font-bold text-black">
           2FA Verification
         </h2>
+
         <form
           action={verifyMFA}
-          className="mt-8 space-y-6 animate-in flex-1 flex flex-col w-full justify-center gap-2 text-gray-100"
+          className="mt-8 space-y-6 flex flex-col w-full"
         >
           <div>
             <label
-              className="block text-sm font-medium text-gray-300"
               htmlFor="verifyCode"
+              className="block text-sm font-medium text-black"
             >
               Enter your 6-digit verification code
             </label>
             <input
-              className="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:border-indigo-500"
-              type="text"
-              name="verifyCode"
               id="verifyCode"
-              placeholder="••••••"
-              required
+              name="verifyCode"
+              type="text"
               maxLength={6}
+              required
+              placeholder="••••••"
+              className="mt-1 block w-full px-3 py-2 bg-white border border-black rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-black focus:border-black"
             />
           </div>
-          <div>
-            <button
-              type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Verify
-            </button>
-          </div>
-
-          {params?.message && (
-            <p className="mt-2 text-center text-sm text-gray-300 bg-gray-800 p-2 rounded-md">
-              {params.message}
-            </p>
-          )}
+          <button
+            type="submit"
+            className="w-full py-2 px-4 border border-black rounded-md text-sm font-medium text-white bg-black hover:bg-white hover:text-black focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-black"
+          >
+            Verify
+          </button>
         </form>
       </div>
     </div>

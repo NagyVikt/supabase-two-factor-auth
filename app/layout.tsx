@@ -4,7 +4,6 @@ import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
 // ← import your new provider
-import { SupabaseProvider } from './providers/SupabaseProvider'
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -37,9 +36,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {/* ← wrap inside SupabaseProvider */}
-          <SupabaseProvider>
             {children}
-          </SupabaseProvider>
         </ThemeProvider>
       </body>
     </html>

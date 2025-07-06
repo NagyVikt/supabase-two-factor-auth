@@ -1,10 +1,11 @@
 import { verifyMFA } from "@/lib/actions/mfa/verifyMfa";
 
-export default function MfaVerification({
+export default async function MfaVerification({
   searchParams,
 }: {
-  searchParams: { message: string };
+  searchParams: Promise<{ message?: string }>;
 }) {
+  const params = await searchParams;
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full sm:max-w-md">
@@ -41,9 +42,9 @@ export default function MfaVerification({
             </button>
           </div>
 
-          {searchParams?.message && (
+          {params?.message && (
             <p className="mt-2 text-center text-sm text-gray-300 bg-gray-800 p-2 rounded-md">
-              {searchParams.message}
+              {params.message}
             </p>
           )}
         </form>

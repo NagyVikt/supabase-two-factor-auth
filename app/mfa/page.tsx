@@ -2,13 +2,14 @@
 
 import { enrollMFA } from "@/lib/actions/mfa/enrollMfa";
 import { verifyMFA } from "@/lib/actions/mfa/verifyMfa";
-import { useState } from "react";
+import { useState, use } from "react";
 
 export default function MFA({
   searchParams,
 }: {
   searchParams: { message: string };
 }) {
+  const params = use(searchParams);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [enrollmentData, setEnrollmentData] = useState<any>(null);
 
@@ -73,9 +74,9 @@ export default function MFA({
               </button>
             </form>
 
-            {searchParams?.message && (
+            {params?.message && (
               <p className="mt-4 p-4 bg-foreground/10 text-foreground text-center rounded">
-                {searchParams.message}
+                {params.message}
               </p>
             )}
 

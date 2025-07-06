@@ -3,7 +3,8 @@
 import { enrollMFA } from "@/lib/actions/mfa/enrollMfa";
 import { verifyMFA } from "@/lib/actions/mfa/verifyMfa";
 import { unEnrollMFA } from "@/lib/actions/mfa/unEnrollMfa";
-import { useState } from "react";
+import { useState, use } from "react";
+
 import {
   Card,
   CardContent,
@@ -20,6 +21,7 @@ export default function Settings({
 }: {
   searchParams: { message?: string };
 }) {
+  const params = use(searchParams);
   const [qrCode, setQrCode] = useState<string | null>(null);
 
   const handleEnroll = async () => {
@@ -77,6 +79,8 @@ export default function Settings({
               </Button>
             </>
           )}
+          {params?.message && (
+            <p className="text-sm text-red-500">{params.message}</p>
           {searchParams?.message && (
             <p className="text-sm text-red-500">{searchParams.message}</p>
           )}

@@ -11,13 +11,11 @@ export default function MFA({
 }) {
   const params = use(searchParams);
   const [qrCode, setQrCode] = useState<string | null>(null);
-  const [enrollmentData, setEnrollmentData] = useState<any>(null);
 
   const handleEnrollMFA = async () => {
     const mfa = await enrollMFA();
     console.log("MFA-->", mfa);
 
-    setEnrollmentData(mfa);
     setQrCode(mfa.totp.qr_code);
   };
 
@@ -80,14 +78,6 @@ export default function MFA({
               </p>
             )}
 
-            {/* {enrollmentData && (
-              <div className="mt-4 p-4 bg-gray-700 text-white rounded-lg">
-                <h3 className="font-semibold mb-2">Enrollment Data:</h3>
-                <pre className="text-xs overflow-x-auto">
-                  {JSON.stringify(enrollmentData, null, 2)}
-                </pre>
-              </div>
-            )} */}
           </div>
         </div>
       </div>

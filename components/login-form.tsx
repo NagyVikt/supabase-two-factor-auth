@@ -43,15 +43,8 @@ export function LoginForm({
       if (!factors?.all.length) {
         router.push("/mfa");
       } else {
-        const assuranceLevel = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (
-          assuranceLevel.data?.nextLevel === "aal2" &&
-          assuranceLevel.data?.nextLevel !== assuranceLevel.data?.currentLevel
-        ) {
-          router.push("/verify-mfa");
-        } else {
-          router.push("/protected");
-        }
+        router.push("/verify-mfa");
+
       }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");

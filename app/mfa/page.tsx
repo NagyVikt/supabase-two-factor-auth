@@ -1,4 +1,3 @@
-// app/verify-mfa/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -19,8 +18,12 @@ export default function MfaVerification() {
   // Enroll on mount
   useEffect(() => {
     ;(async () => {
-      const { totp } = await enrollMFA()
-      setQrCode(totp.qr_code)
+      try {
+        const { totp } = await enrollMFA()
+        setQrCode(totp.qr_code)
+      } catch (err) {
+        setError('Failed to load verification data')
+      }
     })()
   }, [])
 
@@ -43,25 +46,39 @@ export default function MfaVerification() {
     }
   }
 
+  // Skeleton while loading QR
+  if (qrCode === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+        <div className="w-full max-w-xl bg-white border border-black rounded-lg shadow p-6 flex flex-col md:flex-row gap-6">
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-40 h-40 bg-gray-200 rounded-lg animate-pulse" />
+          </div>
+          <div className="flex-1 space-y-4">
+            <div className="h-8 bg-gray-200 rounded animate-pulse" />
+            <div className="h-12 bg-gray-200 rounded animate-pulse" />
+            <div className="h-12 bg-gray-200 rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
       <div className="w-full max-w-xl bg-white border border-black rounded-lg shadow p-6 flex flex-col md:flex-row gap-6">
         {/* QR Code */}
         <div className="flex-1 flex items-center justify-center">
-          {qrCode ? (
-            <div className="p-4 bg-white border border-black rounded-lg">
-              <img
-                src={qrCode}
-                alt="MFA QR Code"
-                className="w-40 h-40"
-              />
-              <p className="mt-2 text-xs text-black text-center">
-                Scan with your Authenticator app
-              </p>
-            </div>
-          ) : (
-            <p className="text-black">Loading QR code…</p>
-          )}
+          <div className="p-4 bg-white border border-black rounded-lg">
+            <img
+              src={qrCode}
+              alt="MFA QR Code"
+              className="w-40 h-40"
+            />
+            <p className="mt-2 text-xs text-black text-center">
+              Scan with your Authenticator app
+            </p>
+          </div>
         </div>
 
         {/* Verification Form */}

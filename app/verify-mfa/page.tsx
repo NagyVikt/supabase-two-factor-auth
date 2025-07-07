@@ -1,178 +1,215 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { enrollMFA } from '@/lib/actions/mfa/enrollMfa'
 import { verifyMFA } from '@/lib/actions/mfa/verifyMfa'
 import { recoverMFA } from '@/lib/actions/mfa/recoverMfa'
+import { Icon } from '@iconify/react';
+
 
 type EnrollResponse =
   | { totp: { qr_code: string } }
   | { alreadyEnrolled: boolean }
 
-export default function MfaVerification() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const initialMessage = searchParams.get('message') ?? null
+// --- Skeleton Component for Initial Loading ---
+const MfaPageSkeleton = () => (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900 p-4">
+        <div className="w-full max-w-xl bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-md p-6 sm:p-8 flex flex-col md:flex-row gap-6 sm:gap-8 animate-pulse">
+            {/* QR Code Skeleton */}
+            <div className="w-full md:w-52 flex-shrink-0 flex flex-col items-center justify-center p-4 border border-dashed border-gray-300 dark:border-neutral-600 rounded-lg">
+                <div className="w-40 h-40 bg-gray-200 dark:bg-neutral-700 rounded-lg" />
+                <div className="h-2.5 bg-gray-200 dark:bg-neutral-700 rounded-full w-32 mt-3" />
+            </div>
 
-  const [qrCode, setQrCode] = useState<string | null>(null)
-  const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false)
-  const [error, setError] = useState<string | null>(initialMessage)
-  const [code, setCode] = useState('')
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [isEnrolling, setIsEnrolling] = useState(true)
-  const [recoverMsg, setRecoverMsg] = useState<string | null>(null)
-  const [isRecovering, setIsRecovering] = useState(false)
+            {/* Form Skeleton */}
+            <div className="flex-1 flex flex-col justify-center">
+                <div className="h-6 bg-gray-200 dark:bg-neutral-700 rounded-full w-3/4 mb-6" />
+                <div className="space-y-4">
+                    <div className="h-4 bg-gray-200 dark:bg-neutral-700 rounded-full w-1/4 mb-2" />
+                    <div className="h-10 bg-gray-200 dark:bg-neutral-700 rounded-lg w-full" />
+                    <div className="h-10 bg-gray-300 dark:bg-neutral-600 rounded-lg w-full mt-2" />
+                </div>
+                <div className="h-px bg-gray-200 dark:bg-neutral-700 my-6" />
+                <div className="h-10 bg-gray-200 dark:bg-neutral-700 rounded-lg w-full" />
+            </div>
+        </div>
+    </div>
+);
+
+
+export default function MfaVerification() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialMessage = searchParams.get('message') ?? null;
+
+  const [isLoading, setIsLoading] = useState(true); // Start with loading state
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false);
+  const [error, setError] = useState<string | null>(initialMessage);
+  const [code, setCode] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [recoverMsg, setRecoverMsg] = useState<string | null>(null);
+  const [isRecovering, setIsRecovering] = useState(false);
 
   // Enroll on mount
   useEffect(() => {
-    ;(async () => {
-      setIsEnrolling(true)
+    const performEnrollment = async () => {
+      setIsLoading(true); // Ensure loading is true at the start
       try {
-        const res: EnrollResponse = await enrollMFA()
+        const res: EnrollResponse = await enrollMFA();
         if ('totp' in res) {
-          setQrCode(res.totp.qr_code)
-        } else {
-          setIsAlreadyEnrolled(true)
+          setQrCode(res.totp.qr_code);
+          setIsAlreadyEnrolled(false);
+        } else if (res.alreadyEnrolled) {
+          setIsAlreadyEnrolled(true);
+          setQrCode(null); // Ensure QR code is null if already enrolled
         }
-      } catch {
-        setError('Failed to enroll for MFA setup.')
+      } catch (err) {
+        console.error("MFA Enrollment Error:", err);
+        setError('Failed to initialize MFA setup. Please try refreshing the page.');
       } finally {
-        setIsEnrolling(false)
+        setIsLoading(false); // Stop loading once done
       }
-    })()
-  }, [])
+    };
+
+    performEnrollment();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setIsVerifying(true)
+    e.preventDefault();
+    if (!code || code.length < 6 || isVerifying) return;
+
+    setError(null);
+    setRecoverMsg(null);
+    setIsVerifying(true);
 
     try {
-      const result = await verifyMFA({ verifyCode: code })
+      const result = await verifyMFA({ verifyCode: code });
       if (result.success) {
-        router.push('/protected')
+        // On success, redirect to the intended protected page or dashboard
+        const redirectTo = searchParams.get('callbackUrl') || '/';
+        router.push(redirectTo);
       } else {
-        setError(result.error ?? 'Invalid code')
+        setError(result.error ?? 'Invalid verification code. Please try again.');
+        setCode(''); // Clear input on error
       }
-    } catch {
-      setError('Verification failed. Try again.')
+    } catch (err) {
+      console.error("MFA Verification Error:", err);
+      setError('An unexpected error occurred during verification. Please try again.');
     } finally {
-      setIsVerifying(false)
+      setIsVerifying(false);
     }
-  }
+  };
 
   const handleRecover = async () => {
-    setRecoverMsg(null)
-    setIsRecovering(true)
+    setError(null);
+    setRecoverMsg(null);
+    setIsRecovering(true);
     try {
-      const result = await recoverMFA()
+      const result = await recoverMFA();
       if (result.sent) {
-        setRecoverMsg('Recovery email sent – check your inbox.')
+        setRecoverMsg('Recovery email sent successfully. Please check your inbox.');
       } else {
-        setRecoverMsg(result.error ?? 'Unable to send recovery email.')
+        setError(result.error ?? 'Unable to send recovery email at this time.');
       }
-    } catch {
-      setRecoverMsg('Unable to send recovery email.')
+    } catch (err) {
+      console.error("MFA Recovery Error:", err);
+      setError('An unexpected error occurred while trying to send a recovery email.');
     } finally {
-      setIsRecovering(false)
+      setIsRecovering(false);
     }
+  };
+
+  if (isLoading) {
+    return <MfaPageSkeleton />;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <div className="w-full max-w-xl bg-white border border-black rounded-lg shadow p-6 flex flex-col md:flex-row gap-6">
-        {/* QR Code / Skeleton (hidden if already enrolled) */}
-        {!isAlreadyEnrolled && (
-          <div className="flex-1 flex items-center justify-center">
-            {isEnrolling ? (
-              <div className="w-40 h-40 bg-gray-200 animate-pulse rounded-lg" />
-            ) : qrCode ? (
-              <div className="p-4 bg-white border border-black rounded-lg">
-                <img src={qrCode} alt="MFA QR Code" className="w-40 h-40" />
-                <p className="mt-2 text-xs text-black text-center">
-                  Scan with your Authenticator app
-                </p>
-              </div>
-            ) : (
-              <p className="text-black">Unable to load QR code.</p>
-            )}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900 p-4 font-sans">
+      <div className={`w-full max-w-xl bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-md p-6 sm:p-8 flex flex-col md:flex-row gap-6 sm:gap-8 transition-all duration-300`}>
+        
+        {/* QR Code Section: Render only if a QR code is available */}
+        {qrCode && (
+          <div className="w-full md:w-52 flex-shrink-0 flex flex-col items-center justify-center text-center">
+            <h3 className="text-lg font-semibold text-black dark:text-white mb-3">Scan to Enroll</h3>
+            <div className="p-3 bg-white border border-gray-300 dark:border-neutral-600 rounded-lg shadow-inner">
+              <img src={qrCode} alt="MFA QR Code" className="w-40 h-40" />
+            </div>
+            <p className="mt-3 text-xs text-gray-600 dark:text-neutral-400">
+              Scan this code with your preferred authenticator app (e.g., Google Authenticator, Authy).
+            </p>
           </div>
         )}
 
         {/* Verification & Recovery Form */}
-        <div className="flex-1 flex flex-col">
-          <h2 className="text-2xl font-bold text-black mb-4 text-center md:text-left">
-            Enter Your Code
+        <div className={`flex-1 flex flex-col justify-center ${!qrCode ? 'w-full md:max-w-sm mx-auto' : ''}`}>
+          <h2 className="text-2xl font-bold text-black dark:text-white mb-2 text-center">
+            Two-Factor Authentication
           </h2>
+          <p className="text-sm text-gray-600 dark:text-neutral-400 mb-6 text-center">
+            {isAlreadyEnrolled
+              ? 'Your account is protected. Enter the code from your authenticator app.'
+              : 'To complete setup, enter the code shown in your authenticator app.'}
+          </p>
 
           {error && (
-            <div className="mb-4 px-3 py-2 bg-red-50 border border-red-500 text-red-700 rounded">
-              {error}
+            <div className="mb-4 px-3 py-2 bg-red-50 dark:bg-red-900/30 border border-red-500 text-red-700 dark:text-red-300 rounded-md text-sm flex items-center gap-2">
+              <Icon icon="mdi:alert-circle-outline" className="text-lg"/>
+              <span>{error}</span>
+            </div>
+          )}
+          {recoverMsg && (
+            <div className="mb-4 px-3 py-2 bg-green-50 dark:bg-green-900/30 border border-green-500 text-green-700 dark:text-green-300 rounded-md text-sm flex items-center gap-2">
+              <Icon icon="mdi:check-circle-outline" className="text-lg"/>
+              <span>{recoverMsg}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 mb-4">
             <div>
-              <label
-                htmlFor="verifyCode"
-                className="block text-sm font-medium text-black mb-1"
-              >
-                6-digit code
+              <label htmlFor="verifyCode" className="block text-sm font-medium text-black dark:text-neutral-200 mb-1">
+                Verification Code
               </label>
               <input
                 id="verifyCode"
                 name="verifyCode"
                 type="text"
                 inputMode="numeric"
+                pattern="\d{6}"
                 maxLength={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                 required
-                className="w-full px-4 py-2 border border-black rounded text-black placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-black"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-neutral-600 rounded-md text-black dark:text-white bg-white dark:bg-neutral-700 placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 text-center text-2xl tracking-[0.5em]"
+                placeholder="------"
               />
             </div>
             <button
               type="submit"
-              disabled={isVerifying}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white font-medium rounded hover:bg-white hover:text-black hover:border hover:border-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isVerifying || code.length !== 6}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white font-semibold rounded-md hover:bg-neutral-800 dark:bg-primary-600 dark:hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isVerifying && (
-                <svg
-                  className="animate-spin h-5 w-5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8z"
-                  />
-                </svg>
+                <Icon icon="mdi:loading" className="animate-spin h-5 w-5" />
               )}
-              Verify
+              Verify Code
             </button>
           </form>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-gray-200 dark:border-neutral-700"></div>
+            <span className="flex-shrink mx-4 text-xs text-gray-400 dark:text-neutral-500">Or</span>
+            <div className="flex-grow border-t border-gray-200 dark:border-neutral-700"></div>
+          </div>
 
           <button
             onClick={handleRecover}
             disabled={isRecovering}
-            className="w-full px-4 py-2 border border-black rounded text-black hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 border border-gray-300 dark:border-neutral-600 rounded-md text-black dark:text-neutral-200 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isRecovering ? 'Sending recovery email…' : 'Lost your code? Recover via email'}
+            {isRecovering ? 'Sending recovery email…' : 'Lost your device? Recover via email'}
           </button>
-          {recoverMsg && (
-            <p className="mt-3 text-sm text-gray-700">{recoverMsg}</p>
-          )}
         </div>
       </div>
     </div>

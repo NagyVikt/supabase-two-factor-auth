@@ -13,7 +13,8 @@ export async function verifyMFA({
 }: {
   verifyCode: string
 }): Promise<VerifyMFAResult> {
-  const supabase = createClient()
+  // now createClient is async, so we await it
+  const supabase = await createClient()
 
   if (!verifyCode) {
     return { success: false, error: 'Missing verification code' }

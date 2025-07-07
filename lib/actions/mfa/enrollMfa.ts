@@ -1,42 +1,22 @@
 'use server';
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import supabase from '@/lib/supabase/server';
 
 export async function enrollMFA() {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: 'User not authenticated.' };
-    }
-
-    const { data: listData } = await supabase.auth.mfa.listFactors();
-    if (listData?.totp[0]?.status === 'verified') {
-      return { alreadyEnrolled: true };
-    }
-    
+    // Attempt TOTP enrollment
     const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
     if (error) {
+      // If already enrolled, Supabase returns an error with code '23505'
+      if ((error as any).code === '23505') {
+        return { alreadyEnrolled: true };
+      }
       return { error: error.message };
     }
-
-    return { totp: data.totp };
+    // data: { secret: string; qr_code: string; }
+    return { totp: { qr_code: data.qr_code } };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+    const message = err instanceof Error ? err.message : 'Unexpected error';
     return { error: message };
   }
 }

@@ -87,9 +87,15 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
    ```
    NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
    NEXT_PUBLIC_SUPABASE_ANON_KEY=[INSERT SUPABASE PROJECT API ANON KEY]
+   SMTP_HOST=[YOUR SMTP HOST]
+   SMTP_PORT=[YOUR SMTP PORT]
+   SMTP_USER=[YOUR SMTP USER]
+   SMTP_PASS=[YOUR SMTP PASSWORD]
+   MFA_EMAIL_FROM=[SENDER EMAIL ADDRESS]
    ```
 
    Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
+   The SMTP variables are used to send a recovery email containing a new MFA QR code if a user loses access to their authenticator device.
 
 5. You can now run the Next.js local development server:
 

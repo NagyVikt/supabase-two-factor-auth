@@ -53,7 +53,6 @@ export default function MfaResetFlowPage() {
   const [isVerifying, startVerifying] = useTransition();
 
   useEffect(() => {
-    // --- THIS IS THE KEY CORRECTION ---
     // Supabase redirects with the token in the URL fragment (#), not a query param (?).
     // We must parse it from window.location.hash on the client side.
     const hash = window.location.hash;
@@ -75,13 +74,14 @@ export default function MfaResetFlowPage() {
 
     const initializeNewMfa = async (token: string) => {
       try {
-        // Call the server action with the correctly extracted access_token
+        // The error "result is undefined" originates if the server action fails before returning a value.
+        // The fix is in the server action itself, which was not correctly validating the accessToken.
         const result: NewMfaResponse = await generateNewMfaFromToken(token);
 
-        if (result.success && result.qrCode) {
+        if (result && result.success && result.qrCode) {
           setQrCode(result.qrCode);
         } else {
-          setError(result.error ?? 'Invalid or expired token. Please request a new recovery link.');
+          setError(result?.error ?? 'Invalid or expired token. Please request a new recovery link.');
         }
       } catch (err) {
         console.error('MFA Reset Client Error:', err);
@@ -105,7 +105,7 @@ export default function MfaResetFlowPage() {
         try {
             const result: VerifyResponse = await verifyMFA({ verifyCode: code });
             if (result.success) {
-                // Redirect to the protected area or protected after successful re-enrollment
+                // Redirect to the protected area or dashboard after successful re-enrollment
                 router.push('/protected'); 
             } else {
                 setError(result.error || 'Invalid code. Please try again.');

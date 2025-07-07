@@ -95,6 +95,8 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
    LOGO_IMAGE_URL=[URL TO EMAIL LOGO IMAGE]
    LOGIN_LINK=[URL FOR LOGIN PAGE]
    MFA_RECOVERY_LINK=http://localhost:3000/mfa-recovery
+   APP_NAME=[YOUR APP NAME]
+   SUPPORT_EMAIL=[SUPPORT EMAIL ADDRESS]
 
    ```
 

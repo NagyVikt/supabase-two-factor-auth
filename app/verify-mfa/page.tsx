@@ -5,8 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { enrollMFA } from '@/lib/actions/mfa/enrollMfa'
 import { verifyMFA } from '@/lib/actions/mfa/verifyMfa'
 import { Icon } from '@iconify/react';
-
-
+import supabase from '@/lib/supabase/browser'          // new singleton
 type EnrollResponse =
   | { totp: { qr_code: string } }
   | { alreadyEnrolled: boolean }
@@ -102,26 +101,34 @@ export default function MfaVerification() {
   };
 
   const handleRecover = async () => {
-    setError(null)
-    setRecoverMsg(null)
-    setIsRecovering(true)
+    setError(null); setRecoverMsg(null); setIsRecovering(true);
   
     try {
-      const res = await fetch('/api/mfa/recover', { method: 'POST' })
-      const result = await res.json() as { sent: boolean; error?: string }
+      // ① fetch the in-memory JWT (still aal-1; no cookies yet)
+      const {
+        data: { session },
+        error: sessionErr,
+      } = await supabase.auth.getSession();                // docs example  :contentReference[oaicite:3]{index=3}
+      if (sessionErr || !session) throw new Error('No session found');
   
-      if (result.sent) {
-        setRecoverMsg('Recovery email sent successfully. Please check your inbox.')
-      } else {
-        setError(result.error ?? 'Unable to send recovery email at this time.')
-      }
+      // ② send it as a Bearer token
+      const res = await fetch('/api/mfa/recover', {
+        method: 'POST',
+        credentials: 'include',                            // keeps working once cookies exist
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+  
+      const body: { sent: boolean; error?: string } = await res.json();
+      if (body.sent) setRecoverMsg('Recovery email sent — check your inbox.');
+      else           setError(body.error ?? 'Could not send recovery email.');
     } catch (err) {
-      console.error("MFA Recovery Error:", err)
-      setError('An unexpected error occurred while trying to send a recovery email.')
+      console.error('MFA Recovery Error:', err);
+      setError('An unexpected error occurred while trying to send a recovery email.');
     } finally {
-      setIsRecovering(false)
+      setIsRecovering(false);
     }
-  }
+  };
+  
 
   if (isLoading) {
     return <MfaPageSkeleton />;

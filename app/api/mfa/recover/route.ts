@@ -1,14 +1,17 @@
 // app/api/mfa/recover/route.ts
 import { NextResponse, NextRequest } from 'next/server'
+import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin.server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import nodemailer from 'nodemailer'
 import React from 'react'
 import { render } from '@react-email/render'
 import RecoverMfaEmail from '@/components/emails/RecoverMfaEmail'
 
 export async function POST(request: NextRequest) {
-  // 1) initialize admin client
+  // 1) initialize admin and user clients
   const supabaseAdmin = createAdminClient()
+  const supabase = createRouteHandlerClient({ cookies })
 
   // 2) extract Supabase access token from cookies
   const accessToken = request.cookies.get('sb-access-token')?.value
@@ -32,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 4) list & delete existing TOTP factors
-  const { data: { all: factors }, error: listErr } =
+  const { data: { factors }, error: listErr } =
     await supabaseAdmin.auth.admin.mfa.listFactors({ userId: user.id })
   if (listErr) {
     return NextResponse.json(
@@ -53,9 +56,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 5) enroll a fresh TOTP factor
+  // 5) enroll a fresh TOTP factor using the user's session
   const { data: enrollData, error: enrollErr } =
-    await supabaseAdmin.auth.admin.mfa.generateTOTP({ userId: user.id })
+    await supabase.auth.mfa.enroll({ factorType: 'totp' })
   if (enrollErr || !enrollData) {
     return NextResponse.json(
       { sent: false, error: enrollErr?.message },
@@ -76,9 +79,10 @@ export async function POST(request: NextRequest) {
   })
   try {
     await transporter.verify()
-  } catch (err: any) {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
     return NextResponse.json(
-      { sent: false, error: `SMTP error: ${err.message}` },
+      { sent: false, error: `SMTP error: ${message}` },
       { status: 500 }
     )
   }
@@ -98,9 +102,10 @@ export async function POST(request: NextRequest) {
       html,
     })
     return NextResponse.json({ sent: true })
-  } catch (err: any) {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
     return NextResponse.json(
-      { sent: false, error: err.message },
+      { sent: false, error: message },
       { status: 500 }
     )
   }

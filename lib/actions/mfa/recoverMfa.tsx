@@ -31,7 +31,8 @@ export const recoverMfa = async (): Promise<RecoverMfaResult> => {
     if (listErr) {
       return { success: false, error: listErr.message }
     }
-    for (const f of listData.all.filter(f => f.factor_type === 'totp')) {
+    for (const f of listData.factors.filter(f => f.factor_type === 'totp')) {
+
       const { error: delErr } = await admin.auth.admin.mfa.deleteFactor({
         userId: user.id,
         id: f.id,
@@ -41,7 +42,8 @@ export const recoverMfa = async (): Promise<RecoverMfaResult> => {
 
     // 4. Generate a fresh TOTP factor for the user
     const { data: enrollData, error: enrollErr } =
-      await admin.auth.admin.mfa.generateTOTP({ userId: user.id })
+      await supabase.auth.mfa.enroll({ factorType: 'totp' })
+
     if (enrollErr || !enrollData) {
       return { success: false, error: enrollErr?.message || 'Failed to generate MFA' }
     }

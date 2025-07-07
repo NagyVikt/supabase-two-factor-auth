@@ -12,6 +12,19 @@ export default async function ProtectedPage() {
     redirect("/auth/login");
   }
 
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  if (!factors?.all.length) {
+    redirect("/mfa");
+  }
+
+  const assuranceLevel = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (
+    assuranceLevel.data?.nextLevel === "aal2" &&
+    assuranceLevel.data?.nextLevel !== assuranceLevel.data?.currentLevel
+  ) {
+    redirect("/verify-mfa");
+  }
+
   return (
     <div className="flex-1 w-full flex flex-col gap-12">
       <div className="w-full">

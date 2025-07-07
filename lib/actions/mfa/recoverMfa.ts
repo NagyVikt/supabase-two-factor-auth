@@ -28,21 +28,26 @@ export const recoverMFA = async () => {
   }
 
   if (process.env.SMTP_HOST && process.env.MFA_EMAIL_FROM && user.email) {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT ?? '587'),
-      secure: false,
-      auth: process.env.SMTP_USER
-        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-        : undefined,
-    })
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT ?? '587'),
+        secure: false,
+        auth: process.env.SMTP_USER
+          ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+          : undefined,
+      })
 
-    await transporter.sendMail({
-      from: process.env.MFA_EMAIL_FROM,
-      to: user.email,
-      subject: 'Recover your MFA setup',
-      html: `<p>Scan this QR code with your authenticator app.</p><img src="${data.totp.qr_code}" alt="MFA QR Code" />`,
-    })
+      await transporter.sendMail({
+        from: process.env.MFA_EMAIL_FROM,
+        to: user.email,
+        subject: 'Recover your MFA setup',
+        html: `<p>Scan this QR code with your authenticator app.</p><img src="${data.totp.qr_code}" alt="MFA QR Code" />`,
+      })
+    } catch (err) {
+      console.error('Error sending recovery email:', err)
+      return { sent: false, error: (err as Error).message }
+    }
   }
 
   return { sent: true }

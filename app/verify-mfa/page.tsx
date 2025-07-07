@@ -14,8 +14,12 @@ export default function MfaVerification() {
 
   const handleRecovery = async () => {
     try {
-      await recoverMFA();
-      setRecoveryMsg('Recovery email sent. Check your inbox.');
+      const result = await recoverMFA();
+      if (result.sent) {
+        setRecoveryMsg('Recovery email sent. Check your inbox.');
+      } else {
+        setRecoveryMsg(result.error ?? 'Unable to send recovery email');
+      }
     } catch (err) {
       setRecoveryMsg('Unable to send recovery email');
     }

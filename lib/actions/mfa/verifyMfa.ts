@@ -1,7 +1,7 @@
 // lib/actions/mfa/verifyMfa.ts
 'use server'
 
-import { createClient } from '@/lib/supabase/admin.server'
+import { createClient } from '@/lib/supabase/client'
 
 export interface VerifyMFAResult {
   success: boolean
@@ -13,7 +13,7 @@ export async function verifyMFA({
 }: {
   verifyCode: string
 }): Promise<VerifyMFAResult> {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   if (!verifyCode) {
     return { success: false, error: 'Missing verification code' }

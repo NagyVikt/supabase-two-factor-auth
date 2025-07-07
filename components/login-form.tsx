@@ -44,6 +44,7 @@ export function LoginForm({
         router.push("/mfa");
       } else {
         router.push("/verify-mfa");
+
       }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");

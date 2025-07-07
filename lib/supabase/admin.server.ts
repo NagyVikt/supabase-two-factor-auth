@@ -1,15 +1,21 @@
-import { createClient as _createClient } from '@supabase/supabase-js'
-import {
-  SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY,
-  assertServiceRoleEnv,
-} from './utils'
+import { createClient } from '@supabase/supabase-js';
+
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SERVICE_ROLE_KEY) {
+  throw new Error(
+    'Missing SUPABASE_SERVICE_ROLE_KEY—please add it to your environment variables.'
+  );
+}
 
 export function createAdminClient() {
-  assertServiceRoleEnv()
-  return _createClient(
-    SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  )
+  return createClient(
+    process.env.SUPABASE_URL!,   // assert the URL exists
+    SERVICE_ROLE_KEY!,           // now definitely a string
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
 }

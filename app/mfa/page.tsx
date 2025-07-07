@@ -2,7 +2,7 @@
 
 import { enrollMFA } from "@/lib/actions/mfa/enrollMfa";
 import { verifyMFA } from "@/lib/actions/mfa/verifyMfa";
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 
 export default function MFA({
   searchParams,
@@ -19,17 +19,14 @@ export default function MFA({
     setQrCode(mfa.totp.qr_code);
   };
 
+  useEffect(() => {
+    handleEnrollMFA();
+  }, []);
+
   return (
     <>
       <div className="pt-0 p-3 border border-white w-full h-[84vh] flex justify-between items-center">
-        <div className="flex justify-center items-center border border-white w-[20vw] h-[50vh]">
-          <button
-            onClick={() => handleEnrollMFA()}
-            className="bg-white text-black px-4 py-2 rounded-2xl mb-3"
-          >
-            Enable 2FA
-          </button>
-        </div>
+        <div className="flex justify-center items-center border border-white w-[20vw] h-[50vh]" />
         <div className="border border-white w-[80vw] h-[50vh]">
           <div className="w-full mx-auto flex items-center justify-center gap-7 border border-red-200 h-full">
             {qrCode && (

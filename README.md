@@ -94,10 +94,11 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
    MFA_EMAIL_FROM=[SENDER EMAIL ADDRESS]
    LOGO_IMAGE_URL=[URL TO EMAIL LOGO IMAGE]
    LOGIN_LINK=[URL FOR LOGIN PAGE]
+   MFA_RECOVERY_LINK=http://localhost:3000/mfa-recovery
    ```
 
    Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
-   The SMTP variables are used to send a recovery email containing a new MFA QR code if a user loses access to their authenticator device.
+   The SMTP variables are used to send a recovery email containing a link to reset MFA if a user loses access to their authenticator device.
 
 5. You can now run the Next.js local development server:
 

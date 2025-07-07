@@ -58,7 +58,12 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
       tls: { rejectUnauthorized: false },
     });
 
-    const html = await render(<RecoverMfaEmail qrCodeUrl={enrollData.totp.qr_code} supportEmail={process.env.SUPPORT_EMAIL!} />);
+    const html = await render(
+      <RecoverMfaEmail
+        recoveryLink={process.env.MFA_RECOVERY_LINK ?? 'http://localhost:3000/mfa-recovery'}
+        supportEmail={process.env.SUPPORT_EMAIL!}
+      />
+    );
     await transporter.sendMail({
       from: `"${process.env.APP_NAME || 'Your App'}" <${process.env.MFA_EMAIL_FROM}>`,
       to: user.email!,

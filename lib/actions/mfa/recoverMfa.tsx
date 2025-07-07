@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server' // Ensure you're using the server client
-import { createAdminClient } from '@/lib/supabase/admin' // Your admin client
+import { createAdminClient } from '@/lib/supabase/admin.server'
 import nodemailer from 'nodemailer'
 import { render } from '@react-email/render'
 import RecoverMfaEmail from '@/components/emails/RecoverMfaEmail'
@@ -16,7 +16,7 @@ export const recoverMfa = async (): Promise<RecoverMfaResult> => {
   // Use a try/catch block for robust error handling
   try {
     // 1. Initialize Supabase clients within the action
-    const supabase = createClient()
+    const supabase = await createClient()
     const supabaseAdmin = createAdminClient()
 
     // 2. Get the authenticated user from the server client
@@ -34,7 +34,7 @@ export const recoverMfa = async (): Promise<RecoverMfaResult> => {
     // 3. List and delete all existing TOTP factors for the user
     // This requires the admin client to bypass RLS and MFA policies
     const { data: listData, error: listError } =
-      await supabaseAdmin.auth.mfa.listFactors({ userId: user.id })
+      await supabaseAdmin.auth.admin.mfa.listFactors({ userId: user.id })
 
     if (listError) {
       console.error(`MFA Recovery Error: Could not list factors for user ${user.id}`, listError)

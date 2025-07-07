@@ -3,6 +3,6 @@
 import { createClient } from '@/lib/supabase/client'
 
 export const checkAssurance = async () => {
-  const supabase = createClient()
+  const supabase = await createClient()
   await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
 }

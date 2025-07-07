@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { LogoutButton } from "./logout-button";
 
 export async function AuthButton() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },

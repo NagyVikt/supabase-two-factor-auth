@@ -14,7 +14,7 @@ interface MfaEnrollData {
 }
 
 export const enrollMFA = async () => {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check current assurance level before enrolling
   await supabase.auth.mfa.getAuthenticatorAssuranceLevel()

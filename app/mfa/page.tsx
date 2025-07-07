@@ -33,6 +33,28 @@ export default function MfaVerification() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [recoverMsg, setRecoverMsg] = useState<string | null>(null);
   const [isRecovering, setIsRecovering] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('mfaEnrollAttempts');
+      if (raw) {
+        const { attempts: a, blockedUntil: b } = JSON.parse(raw);
+        if (typeof a === 'number') setAttempts(a);
+        if (typeof b === 'number') setBlockedUntil(b);
+      }
+    } catch {
+      // ignore malformed data
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      'mfaEnrollAttempts',
+      JSON.stringify({ attempts, blockedUntil })
+    );
+  }, [attempts, blockedUntil]);
 
   useEffect(() => {
     const performEnrollment = async () => {
@@ -57,15 +79,31 @@ export default function MfaVerification() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.length !== 6 || isVerifying) return;
+    const now = Date.now();
+    if (blockedUntil && now < blockedUntil) {
+      const mins = Math.ceil((blockedUntil - now) / 60000);
+      setError(`Too many incorrect codes. Try again in ${mins} minute${mins > 1 ? 's' : ''}.`);
+      return;
+    }
     setError(null);
     setIsVerifying(true);
     const result = await verifyMFA({ verifyCode: code });
     setIsVerifying(false);
 
     if (result.success) {
+      setAttempts(0);
+      setBlockedUntil(null);
       router.push(searchParams.get('callbackUrl') || '/protected');
     } else {
-      setError(result.error ?? 'Invalid code.');
+      const newAttempts = attempts + 1;
+      if (newAttempts >= 3) {
+        setBlockedUntil(Date.now() + 10 * 60 * 1000);
+        setAttempts(0);
+        setError('Too many incorrect codes. Please wait 10 minutes before trying again.');
+      } else {
+        setAttempts(newAttempts);
+        setError(result.error ?? 'Invalid code.');
+      }
       setCode('');
     }
   };

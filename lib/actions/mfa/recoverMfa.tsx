@@ -39,16 +39,6 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
       throw new Error('Not authenticated. This may be due to invalid cookies or an authentication issue.');
     }
 
-    const { data: listData, error: listErr } = await admin.auth.admin.mfa.listFactors({ userId: user.id });
-    if (listErr) throw listErr;
-
-    for (const f of listData.factors.filter(f => f.factor_type === 'totp')) {
-      const { error: delErr } = await admin.auth.admin.mfa.deleteFactor({ userId: user.id, id: f.id });
-      if (delErr) throw delErr;
-    }
-
-    const { data: enrollData, error: enrollErr } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
-    if (enrollErr || !enrollData) throw enrollErr || new Error('Failed to generate a new MFA factor.');
 
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       email: user.email!,

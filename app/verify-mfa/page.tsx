@@ -132,7 +132,7 @@ export default function MfaVerification() {
       if (result.success) {
         setAttempts(0);
         setBlockedUntil(null);
-        const redirectTo = searchParams.get('callbackUrl') || '/dashboard';
+        const redirectTo = searchParams.get('callbackUrl') || '/protected';
         router.push(redirectTo);
       } else {
         const newAttempts = attempts + 1;

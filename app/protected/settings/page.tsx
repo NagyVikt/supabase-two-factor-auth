@@ -251,15 +251,7 @@ export default function Settings() {
             </form>
           )}
 
-          {hasMfa && !qrCodeUrl && (
-            <Button
-              variant="destructive"
-              onClick={handleUnenroll}
-              className="self-start"
-            >
-              Disable 2FA
-            </Button>
-          )}
+
 
           {message && (
             <p className="text-sm text-red-500 mt-4">{message}</p>

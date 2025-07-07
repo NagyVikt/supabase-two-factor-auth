@@ -1,6 +1,6 @@
 'use server';
 
-import { createServerClient } from '@supabase/ssr';
+import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/admin.server';
 import nodemailer from 'nodemailer';
@@ -8,36 +8,30 @@ import React from 'react';
 import { render } from '@react-email/render';
 import RecoverMfaEmail from '@/components/emails/RecoverMfaEmail';
 
-export async function recoverMfa(): Promise<{ success: boolean; error?: string }> {
-  // ADDED: Explicitly check for the required environment variable.
-  // This helps debug the "Invalid API Key" error.
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const errorMessage = 'Server configuration error: The SUPABASE_SERVICE_ROLE_KEY is missing from your environment variables. This is required for MFA recovery.';
-    console.error(errorMessage);
-    return { success: false, error: errorMessage };
+export async function enrollMFA() {
+  const cookieStore = await cookies();
+  const supabase = createServerActionClient({ cookies: () => cookieStore });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'User not found' };
+
+  const { data: listData } = await supabase.auth.mfa.listFactors();
+  if (listData?.totp[0]?.status === 'verified') {
+    return { alreadyEnrolled: true };
   }
   
-  const cookieStore = await cookies();
+  const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+  if (error) return { error: error.message };
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-  
-  const admin = createAdminClient();
+  return { totp: data.totp };
+}
 
+export async function recoverMfa(): Promise<{ success: boolean; error?: string }> {
   try {
+    const cookieStore = await cookies();
+    const supabase = createServerActionClient({ cookies: () => cookieStore });
+    const admin = createAdminClient();
     const { data: { user }, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !user) {
-      throw new Error('Not authenticated. This may be due to invalid cookies or an authentication issue.');
-    }
+    if (userErr || !user) throw new Error('Not authenticated');
 
     const { data: listData, error: listErr } = await admin.auth.admin.mfa.listFactors({ userId: user.id });
     if (listErr) throw listErr;
@@ -48,7 +42,7 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
     }
 
     const { data: enrollData, error: enrollErr } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
-    if (enrollErr || !enrollData) throw enrollErr || new Error('Failed to generate a new MFA factor.');
+    if (enrollErr || !enrollData) throw enrollErr || new Error('Failed to generate MFA factor.');
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -60,7 +54,7 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
 
     const html = render(<RecoverMfaEmail qrCodeUrl={enrollData.totp.qr_code} supportEmail={process.env.SUPPORT_EMAIL!} />);
     await transporter.sendMail({
-      from: `"${process.env.APP_NAME || 'Your App'}" <${process.env.MFA_EMAIL_FROM}>`,
+      from: `"${process.env.APP_NAME}" <${process.env.MFA_EMAIL_FROM}>`,
       to: user.email!,
       subject: 'Your Two-Factor Authentication Recovery',
       html,

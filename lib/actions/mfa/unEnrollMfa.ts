@@ -1,22 +1,43 @@
-'use server'
+'use server';
 
-import { createClient } from '@/lib/supabase/client'
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
-export const unEnrollMFA = async () => {
-  const supabase = await createClient()
+export async function enrollMFA() {
+  const cookieStore = await cookies();
 
-  const factors = await supabase.auth.mfa.listFactors()
-  if (factors.error) {
-    throw factors.error
-  }
+  // Use the recommended createServerClient from @supabase/ssr
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
 
-  const factorId = factors.data.all[0]?.id
-  if (!factorId) {
-    return
-  }
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { error: 'User not authenticated.' };
+    }
 
-  const { error } = await supabase.auth.mfa.unenroll({ factorId })
-  if (error) {
-    throw error
+    const { data: listData } = await supabase.auth.mfa.listFactors();
+    if (listData?.totp[0]?.status === 'verified') {
+      return { alreadyEnrolled: true };
+    }
+    
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+    if (error) {
+      return { error: error.message };
+    }
+
+    return { totp: data.totp };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+    return { error: message };
   }
 }

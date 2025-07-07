@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/admin.server'
+import { createClient } from '@/lib/supabase/client'
 
 interface MfaEnrollData {
   id: string
@@ -14,7 +14,7 @@ interface MfaEnrollData {
 }
 
 export const enrollMFA = async () => {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Check current assurance level before enrolling
   await supabase.auth.mfa.getAuthenticatorAssuranceLevel()

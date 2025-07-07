@@ -1,6 +1,6 @@
 /* ─────────── lib/supabase/browser.ts ─────────── */
 'use client'                                         // browser bundle only
-import { createBrowserClient } from '@supabase/ssr'  // new     SDK :contentReference[oaicite:2]{index=2}
+import { createBrowserClient } from '@supabase/ssr'  // new     SDK
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './utils'
 
 const supabase = createBrowserClient(

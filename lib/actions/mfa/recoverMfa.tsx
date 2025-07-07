@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/browser' // Ensure you're using the server client
+import { createClient } from '@/lib/supabase/client'
 import { createAdminClient } from '@/lib/supabase/admin.server'
 import nodemailer from 'nodemailer'
 import { render } from '@react-email/render'

@@ -1,18 +1,12 @@
-// ─────────  lib/supabase/browser.ts  ─────────
-'use client'                                              // browser-only
-import { createBrowserClient } from '@supabase/ssr'       // new SSR package  :contentReference[oaicite:0]{index=0}
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './utils' // your env loader
+/* ─────────── lib/supabase/browser.ts ─────────── */
+'use client'                                         // browser bundle only
+import { createBrowserClient } from '@supabase/ssr'  // new     SDK :contentReference[oaicite:2]{index=2}
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './utils'
 
-// ✨ singleton – reused everywhere
 const supabase = createBrowserClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
-)                                                         // one instance = fewer websockets :contentReference[oaicite:1]{index=1}
+)                                                   // one socket, many hooks
 
-export function createClient() {
-  // tiny wrapper so legacy code (`createClient()`) still works
-  return supabase
-}
-
-export { supabase }       // named export for new code
-export default supabase   // default export for brevity
+export default supabase
+export function createClient() { return supabase }  // ⬅ legacy wrapper if you like

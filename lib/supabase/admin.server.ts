@@ -1,14 +1,15 @@
 import { createClient as _createClient } from '@supabase/supabase-js'
+import {
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  assertServiceRoleEnv,
+} from './utils'
 
 export function createAdminClient() {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) {
-    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
-  }
+  assertServiceRoleEnv()
   return _createClient(
-    url,
-    key,
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false, autoRefreshToken: false } },
   )
 }

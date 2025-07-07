@@ -50,6 +50,15 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
     const { data: enrollData, error: enrollErr } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
     if (enrollErr || !enrollData) throw enrollErr || new Error('Failed to generate a new MFA factor.');
 
+    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+      email: user.email!,
+      type: 'magiclink',
+      options: { redirectTo: process.env.MFA_RECOVERY_LINK ?? 'http://localhost:3000/mfa-recovery' },
+    });
+    if (linkErr || !linkData?.properties?.action_link) {
+      throw linkErr || new Error('Failed to create recovery link.');
+    }
+
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
@@ -60,8 +69,7 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
 
     const html = await render(
       <RecoverMfaEmail
-        recoveryLink={process.env.MFA_RECOVERY_LINK ?? 'http://localhost:3000/mfa-recovery'}
-
+        recoveryLink={linkData.properties.action_link}
         supportEmail={process.env.SUPPORT_EMAIL!}
       />
     );

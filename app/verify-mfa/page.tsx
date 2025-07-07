@@ -88,7 +88,7 @@ export default function MfaVerification() {
       const result = await verifyMFA({ verifyCode: code });
       if (result.success) {
         // On success, redirect to the intended protected page or dashboard
-        const redirectTo = searchParams.get('callbackUrl') || '/';
+        const redirectTo = searchParams.get('callbackUrl') || '/protected';
         router.push(redirectTo);
       } else {
         setError(result.error ?? 'Invalid verification code. Please try again.');

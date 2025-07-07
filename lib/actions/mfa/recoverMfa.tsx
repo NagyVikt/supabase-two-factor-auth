@@ -6,7 +6,6 @@ import { createAdminClient } from '@/lib/supabase/admin.server'
 import nodemailer from 'nodemailer'
 import { render } from '@react-email/render'
 import RecoverMfaEmail from '@/components/emails/RecoverMfaEmail'
-
 interface RecoverMFAResult {
   sent: boolean
   error?: string

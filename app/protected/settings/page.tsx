@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, FormEvent } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/browser'
 
 // ——— Typed ShadCN‐style UI components (same as before) ———
 type DivProps = React.HTMLAttributes<HTMLDivElement>

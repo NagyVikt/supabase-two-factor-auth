@@ -13,12 +13,12 @@ import {
 } from '@react-email/components'
 
 interface RecoverMfaEmailProps {
-  qrCodeUrl: string
+  recoveryLink: string
   supportEmail: string
 }
 
 export default function RecoverMfaEmail({
-  qrCodeUrl,
+  recoveryLink,
   supportEmail,
 }: RecoverMfaEmailProps) {
   return (
@@ -42,19 +42,15 @@ export default function RecoverMfaEmail({
           {/* Intro */}
           <Text style={styles.text}>
             We received a request to reset your multi-factor authentication.
-            Scan the QR code below with your authenticator app (e.g. Google
-            Authenticator, Authy) to finish setup.
+            Click the button below to start the recovery process and set up your
+            authenticator app again.
           </Text>
 
-          {/* QR Code */}
+          {/* Recovery Link */}
           <Section style={styles.section}>
-            <Img
-              src={qrCodeUrl}
-              alt="MFA QR Code"
-              width="200"
-              height="200"
-              style={styles.qrImage}
-            />
+            <Button style={styles.button} href={recoveryLink}>
+              Reset MFA
+            </Button>
           </Section>
 
           {/* Call-to-Action */}
@@ -112,9 +108,6 @@ const styles: Record<string, CSSProperties> = {
   section: {
     textAlign: 'center',
     margin: '30px 0',
-  },
-  qrImage: {
-    borderRadius: '4px',
   },
   button: {
     display: 'block',

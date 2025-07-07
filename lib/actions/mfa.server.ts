@@ -123,7 +123,7 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('MFA Recovery Failed SOP:', message);
+    console.error('MFA recovery failed:', message);
     return { success: false, error: message };
   }
 }

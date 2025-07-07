@@ -29,7 +29,7 @@ export default function RecoverMfaEmail({
         <Container style={styles.container}>
           {/* Logo */}
           <Img
-            src="https://your-cdn.com/logo.png"
+            src={process.env.LOGO_IMAGE_URL ?? "https://your-cdn.com/logo.png"}
             alt="Your App"
             width="48"
             height="48"
@@ -60,7 +60,7 @@ export default function RecoverMfaEmail({
           {/* Call-to-Action */}
           <Button
             style={styles.button}
-            href="http://localhost:3000/login"
+            href={process.env.LOGIN_LINK ?? "http://localhost:3000/login"}
           >
             Go to Your Dashboard
           </Button>

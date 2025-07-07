@@ -14,7 +14,7 @@ interface RecoverMFAResult {
 
 export const recoverMFA = async (): Promise<RecoverMFAResult> => {
   // 1) Build both clients
-  const userClient  = createClient()
+  const userClient  = await createClient()
   const adminClient = createAdminClient()
 
   // 2) Make sure the user is authenticated

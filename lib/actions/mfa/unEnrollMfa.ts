@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 
 export const unEnrollMFA = async () => {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const factors = await supabase.auth.mfa.listFactors()
   if (factors.error) {

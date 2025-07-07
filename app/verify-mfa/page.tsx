@@ -158,8 +158,6 @@ export default function MfaVerification() {
             </div>
             <button type="submit" disabled={isVerifying || code.length !== 6} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white font-semibold rounded-md hover:bg-neutral-800 dark:bg-blue-600 dark:hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{isVerifying && <Icon icon="mdi:loading" className="animate-spin h-5 w-5" />}Verify Code</button>
           </form>
-          <div className="relative flex py-2 items-center"><div className="flex-grow border-t border-gray-200 dark:border-neutral-700"></div><span className="flex-shrink mx-4 text-xs text-gray-400 dark:text-neutral-500">Or</span><div className="flex-grow border-t border-gray-200 dark:border-neutral-700"></div></div>
-          <button onClick={handleRecover} disabled={isRecovering} className="w-full px-4 py-2 border border-gray-300 dark:border-neutral-600 rounded-md text-black dark:text-neutral-200 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{isRecovering ? 'Sending recovery email…' : 'Lost your device? Recover via email'}</button>
         </div>
       </div>
     </div>

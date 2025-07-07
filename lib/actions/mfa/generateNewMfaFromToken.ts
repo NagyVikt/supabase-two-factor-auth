@@ -3,7 +3,7 @@
 
 // UPDATED: Import the Supabase server client creator
 import { createClient } from '@/lib/supabase/client'; 
-import speakeasy from '@krivega/speakeasy';
+import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
 import { z } from 'zod';
 
@@ -100,20 +100,25 @@ export async function generateNewMfaFromToken(
         throw updateUserError;
     }
 
-    // 7. Generate the QR code data URL
+    // 7. Generate the QR code data URL for the client
+    // The otpauthURL is a standard format that authenticator apps understand.
     const otpauthUrl = speakeasy.otpauthURL({
       secret: newSecret.base32,
       label: encodeURIComponent(user.email ?? 'user'),
-      issuer: 'YourAppName',
+      issuer: 'YourAppName', // Should be the name of your application
       algorithm: 'SHA1',
     });
 
+    // We convert this URL into a Base64-encoded image (a "data URL").
+    // This data URL can be used directly as the `src` for an `<img>` tag on the client-side,
+    // just like in the component you provided. Example: <img src={qrCodeDataUrl} />
     const qrCodeDataUrl = await qrcode.toDataURL(otpauthUrl);
     
-    // 8. Invalidate the recovery token by deleting it
+    // 8. Invalidate the recovery token by deleting it to prevent reuse
     await supabase.from('mfa_recovery_tokens').delete().eq('id', recoveryToken.id);
 
-    // 9. Return the QR code for the user to scan
+    // 9. Return the QR code for the user to scan on the client.
+    // The client-side component will receive this `qrCode` and display it as an image.
     return {
       success: true,
       qrCode: qrCodeDataUrl,

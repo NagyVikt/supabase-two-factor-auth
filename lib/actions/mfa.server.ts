@@ -118,12 +118,13 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
       from: `"${process.env.APP_NAME!}" <${process.env.MFA_EMAIL_FROM!}>`,
       to: user.email!,
       subject: 'Your Two-Factor Authentication Recovery',
-      html,});
+      html,
+    });
 
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('MFA Recovery Failed SOP:', message);
+    console.error('MFA recovery failed:', message);
     return { success: false, error: message };
   }
 }

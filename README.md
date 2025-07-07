@@ -82,7 +82,13 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
    cd with-supabase-app
    ```
 
-4. Rename `.env.example` to `.env.local` and update the following:
+4. Install dependencies before running development commands like `npm run dev` or `npm run lint`
+
+```bash
+npm install
+```
+
+5. Rename `.env.example` to `.env.local` and update the following:
 
    ```
    NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
@@ -92,16 +98,20 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
    SMTP_USER=[YOUR SMTP USER]
    SMTP_PASS=[YOUR SMTP PASSWORD]
    MFA_EMAIL_FROM=[SENDER EMAIL ADDRESS]
+   APP_NAME=[NAME OF YOUR APPLICATION]
+   SUPPORT_EMAIL=[SUPPORT CONTACT ADDRESS]
    LOGO_IMAGE_URL=[URL TO EMAIL LOGO IMAGE]
    LOGIN_LINK=[URL FOR LOGIN PAGE]
    MFA_RECOVERY_LINK=http://localhost:3000/mfa-recovery
+   APP_NAME=[YOUR APP NAME]
+   SUPPORT_EMAIL=[SUPPORT EMAIL ADDRESS]
 
    ```
 
    Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
-   The SMTP variables are used to send a recovery email containing a link to reset MFA if a user loses access to their authenticator device.
+   The SMTP variables, `APP_NAME`, and `SUPPORT_EMAIL` are used to send a recovery email containing a link to reset MFA if a user loses access to their authenticator device.
 
-5. You can now run the Next.js local development server:
+6. You can now run the Next.js local development server:
 
    ```bash
    npm run dev
@@ -114,6 +124,7 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
    ```bash
    npm test
    ```
+
 7. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
 
 > Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.

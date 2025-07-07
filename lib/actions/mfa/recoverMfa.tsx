@@ -82,7 +82,7 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unknown error occurred.';
-    console.error('MFA Recovery Failed S>DASS:', message);
+    console.error('MFA recovery failed:', message);
     return { success: false, error: message };
   }
 }

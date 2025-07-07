@@ -1,91 +1,146 @@
-// app/verify-mfa/page.tsx
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { verifyMFA } from '@/lib/actions/mfa/verifyMfa';
-import { recoverMFA } from '@/lib/actions/mfa/recoverMfa';
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { enrollMFA } from '@/lib/actions/mfa/enrollMfa'
+import { verifyMFA } from '@/lib/actions/mfa/verifyMfa'
+
+type EnrollResponse =
+  | { totp: { qr_code: string } }
+  | { alreadyEnrolled: boolean }
 
 export default function MfaVerification() {
-  const searchParams = useSearchParams();
-  const message = searchParams.get('message') || undefined;
-  const [showMessage, setShowMessage] = useState(true);
-  const [recoveryMsg, setRecoveryMsg] = useState<string | null>(null);
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialMessage = searchParams.get('message') ?? null
 
-  const handleRecovery = async () => {
-    try {
-      const result = await recoverMFA();
-      if (result.sent) {
-        setRecoveryMsg('Recovery email sent. Check your inbox.');
-      } else {
-        setRecoveryMsg(result.error ?? 'Unable to send recovery email');
+  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(initialMessage)
+  const [code, setCode] = useState('')
+  const [isVerifying, setIsVerifying] = useState(false)
+
+  // Enroll on mount
+  useEffect(() => {
+    ;(async () => {
+      let res: EnrollResponse
+      try {
+        res = await enrollMFA()
+      } catch (e: any) {
+        setError('Failed to enroll for MFA')
+        return
       }
-    } catch (err) {
-      setRecoveryMsg('Unable to send recovery email');
+
+      if ('totp' in res) {
+        // new enrollment
+        setQrCode(res.totp.qr_code)
+      } else if (res.alreadyEnrolled) {
+        // if the user already has MFA, you might redirect them
+        // or you could fetch the existing QR code via listFactors + challenge
+        setError('MFA already enrolled. Please enter your existing code.')
+      }
+    })()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setIsVerifying(true)
+
+    try {
+      const result = await verifyMFA({ verifyCode: code })
+      if (result.success) {
+        router.push('/dashboard')
+      } else {
+        setError(result.error ?? 'Invalid code')
+      }
+    } catch {
+      setError('Verification failed. Try again.')
+    } finally {
+      setIsVerifying(false)
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full sm:max-w-md">
-        {/* Error alert positioned above title */}
-        {message && showMessage && (
-          <div className="relative mb-6 border border-red-400 bg-red-50 text-red-700 px-4 py-3 rounded-md">
-            <span className="block text-sm">{message}</span>
-            <button
-              type="button"
-              onClick={() => setShowMessage(false)}
-              className="absolute top-1 right-2 text-red-700 hover:text-red-900 text-lg leading-none"
-              aria-label="Close"
-            >
-              &times;
-            </button>
-          </div>
-        )}
-
-        <h2 className="mt-0 text-center text-3xl font-bold text-black">
-          2FA Verification
-        </h2>
-
-        <form
-          action={verifyMFA}
-          className="mt-8 space-y-6 flex flex-col w-full"
-        >
-          <div>
-            <label
-              htmlFor="verifyCode"
-              className="block text-sm font-medium text-black"
-            >
-              Enter your 6-digit verification code
-            </label>
-            <input
-              id="verifyCode"
-              name="verifyCode"
-              type="text"
-              maxLength={6}
-              required
-              placeholder="••••••"
-              className="mt-1 block w-full px-3 py-2 bg-white border border-black rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-black focus:border-black"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full py-2 px-4 border border-black rounded-md text-sm font-medium text-white bg-black hover:bg-white hover:text-black focus:outline-none focus:ring-1 focus:ring-offset-0 focus:ring-black"
-          >
-            Verify
-          </button>
-          <button
-            type="button"
-            onClick={handleRecovery}
-            className="w-full py-2 px-4 border border-gray-300 rounded-md text-sm mt-4"
-          >
-            Send recovery email
-          </button>
-          {recoveryMsg && (
-            <p className="text-center text-sm text-gray-700 mt-2">{recoveryMsg}</p>
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="w-full max-w-xl bg-white border border-black rounded-lg shadow p-6 flex flex-col md:flex-row gap-6">
+        {/* QR Code */}
+        <div className="flex-1 flex items-center justify-center">
+          {qrCode ? (
+            <div className="p-4 bg-white border border-black rounded-lg">
+              <img src={qrCode} alt="MFA QR Code" className="w-40 h-40" />
+              <p className="mt-2 text-xs text-black text-center">
+                Scan with your Authenticator app
+              </p>
+            </div>
+          ) : (
+            <p className="text-black">Loading QR code…</p>
           )}
-        </form>
+        </div>
+
+        {/* Verification Form */}
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold text-black mb-4 text-center md:text-left">
+            Enter Your Code
+          </h2>
+
+          {error && (
+            <div className="mb-4 px-3 py-2 bg-red-50 border border-red-500 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="verifyCode"
+                className="block text-sm font-medium text-black mb-1"
+              >
+                6-digit code
+              </label>
+              <input
+                id="verifyCode"
+                name="verifyCode"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+                className="w-full px-4 py-2 border border-black rounded text-black placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-black"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isVerifying}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white font-medium rounded hover:bg-white hover:text-black hover:border hover:border-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isVerifying && (
+                <svg
+                  className="animate-spin h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  />
+                </svg>
+              )}
+              Verify
+            </button>
+          </form>
+        </div>
       </div>
     </div>
-  );
+  )
 }

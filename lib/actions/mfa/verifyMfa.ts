@@ -1,54 +1,62 @@
+// lib/actions/mfa/verifyMfa.ts
 'use server'
 
 import { createClient } from '@/lib/supabase/server.server'
-import { redirect } from 'next/navigation'
 
-export const verifyMFA = async (formData: FormData) => {
+export interface VerifyMFAResult {
+  success: boolean
+  error?: string
+}
+
+export async function verifyMFA({
+  verifyCode,
+}: {
+  verifyCode: string
+}): Promise<VerifyMFAResult> {
   const supabase = await createClient()
 
-  const verificationCode = formData.get('verifyCode') as string
-
-  // List enrolled factors
-  const factors = await supabase.auth.mfa.listFactors()
-  if (factors.error) {
-    // Couldn’t list—redirect back with generic error
-    redirect('/verify-mfa?message=Unable+to+verify+your+device')
+  if (!verifyCode) {
+    return { success: false, error: 'Missing verification code' }
   }
 
-  const factorId = factors.data.all[0]?.id
+  // 1) List enrolled factors
+  const { data: listData, error: listError } =
+    await supabase.auth.mfa.listFactors()
+  if (listError) {
+    return { success: false, error: listError.message }
+  }
+
+  const factorId = listData.all[0]?.id
   if (!factorId) {
-    redirect('/verify-mfa?message=No+TOTP+factor+found')
+    return { success: false, error: 'No MFA factor found' }
   }
 
-  // Initiate a challenge (refreshes the factor so it’s ready to verify)
-  const challenge = await supabase.auth.mfa.challenge({ factorId })
-  if (challenge.error) {
-    redirect('/verify-mfa?message=Unable+to+initiate+MFA+challenge')
+  // 2) Initiate challenge
+  const { data: challengeData, error: challengeError } =
+    await supabase.auth.mfa.challenge({ factorId })
+  if (challengeError) {
+    return { success: false, error: challengeError.message }
   }
 
-  const challengeId = challenge.data.id
+  // 3) Verify code
+  const { data: verifyData, error: verifyError } =
+    await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challengeData.id,
+      code: verifyCode,
+    })
+  if (verifyError) {
+    return { success: false, error: verifyError.message }
+  }
 
-  // Perform the actual verify step
-  const verify = await supabase.auth.mfa.verify({
-    factorId,
-    challengeId,
-    code: verificationCode,
+  // 4) Set session tokens
+  const { error: sessionError } = await supabase.auth.setSession({
+    access_token: verifyData.access_token ?? '',
+    refresh_token: verifyData.refresh_token ?? '',
   })
-
-  if (verify.error) {
-    // Invalid TOTP code: send back to form with message
-    redirect('/verify-mfa?message=Invalid+verification+code')
+  if (sessionError) {
+    return { success: false, error: sessionError.message }
   }
 
-  // On success, set session tokens
-  const { error } = await supabase.auth.setSession({
-    access_token: verify.data.access_token || '',
-    refresh_token: verify.data.refresh_token || '',
-  })
-  if (error) {
-    redirect('/verify-mfa?message=Could+not+establish+session')
-  }
-
-  // All good—go to your protected page
-  redirect('/protected?mfaSuccess=true')
+  return { success: true }
 }

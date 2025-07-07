@@ -1,83 +1,133 @@
-"use client";
+// app/verify-mfa/page.tsx
+'use client'
 
-import { enrollMFA } from "@/lib/actions/mfa/enrollMfa";
-import { verifyMFA } from "@/lib/actions/mfa/verifyMfa";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { enrollMFA } from '@/lib/actions/mfa/enrollMfa'
+import { verifyMFA } from '@/lib/actions/mfa/verifyMfa'
 
-export default function MFA({
-  searchParams,
-}: {
-  searchParams: { message: string };
-}) {
-  const params = use(searchParams);
-  const [qrCode, setQrCode] = useState<string | null>(null);
+export default function MfaVerification() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialMessage = searchParams.get('message') ?? null
 
-  const handleEnrollMFA = async () => {
-    const mfa = await enrollMFA();
-    console.log("MFA-->", mfa);
+  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+  const [error, setError] = useState<string | null>(initialMessage)
+  const [isVerifying, setIsVerifying] = useState(false)
 
-    setQrCode(mfa.totp.qr_code);
-  };
-
+  // Enroll on mount
   useEffect(() => {
-    handleEnrollMFA();
-  }, []);
+    ;(async () => {
+      const { totp } = await enrollMFA()
+      setQrCode(totp.qr_code)
+    })()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setIsVerifying(true)
+
+    try {
+      const result = await verifyMFA({ verifyCode: code })
+      if (result.success) {
+        router.push('/protected')
+      } else {
+        setError(result.error ?? 'Invalid code')
+      }
+    } catch {
+      setError('Verification failed. Try again.')
+    } finally {
+      setIsVerifying(false)
+    }
+  }
 
   return (
-    <>
-      <div className="pt-0 p-3 border border-white w-full h-[84vh] flex justify-between items-center">
-        <div className="flex justify-center items-center border border-white w-[20vw] h-[50vh]" />
-        <div className="border border-white w-[80vw] h-[50vh]">
-          <div className="w-full mx-auto flex items-center justify-center gap-7 border border-red-200 h-full">
-            {qrCode && (
-              <div className="text-center ">
-                <div className="inline-block border p-4 rounded-lg bg-white">
-                  <img
-                    src={qrCode}
-                    alt="MFA QR Code"
-                    width={180}
-                    height={180}
-                  />
-                </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  Scan this QR code with any authenticator app to get your code!
-                </p>
-              </div>
-            )}
-
-            <form className="space-y-4" action={verifyMFA}>
-              <div>
-                <label
-                  className="block text-sm font-medium mb-1"
-                  htmlFor="verifyCode"
-                >
-                  Enter your code
-                </label>
-                <input
-                  className="w-full rounded-md px-4 py-2 bg-inherit border"
-                  name="verifyCode"
-                  id="verifyCode"
-                  placeholder="Enter your code"
-                  required
-                />
-              </div>
-              <button
-                className="w-full bg-green-600 rounded-md px-4 py-2 text-white
-               hover:bg-green-500 transition-colors"
-              >
-                Verify
-              </button>
-            </form>
-
-            {params?.message && (
-              <p className="mt-4 p-4 bg-foreground/10 text-foreground text-center rounded">
-                {params.message}
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="w-full max-w-xl bg-white border border-black rounded-lg shadow p-6 flex flex-col md:flex-row gap-6">
+        {/* QR Code */}
+        <div className="flex-1 flex items-center justify-center">
+          {qrCode ? (
+            <div className="p-4 bg-white border border-black rounded-lg">
+              <img
+                src={qrCode}
+                alt="MFA QR Code"
+                className="w-40 h-40"
+              />
+              <p className="mt-2 text-xs text-black text-center">
+                Scan with your Authenticator app
               </p>
-            )}
+            </div>
+          ) : (
+            <p className="text-black">Loading QR code…</p>
+          )}
+        </div>
 
-          </div>
+        {/* Verification Form */}
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold text-black mb-4 text-center md:text-left">
+            Enter Your Code
+          </h2>
+
+          {error && (
+            <div className="mb-4 px-3 py-2 bg-red-50 border border-red-500 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="verifyCode"
+                className="block text-sm font-medium text-black mb-1"
+              >
+                6-digit code
+              </label>
+              <input
+                id="verifyCode"
+                name="verifyCode"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+                className="w-full px-4 py-2 border border-black rounded text-black placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-black"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isVerifying}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white font-medium rounded hover:bg-white hover:text-black hover:border hover:border-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isVerifying && (
+                <svg
+                  className="animate-spin h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  />
+                </svg>
+              )}
+              Verify
+            </button>
+          </form>
         </div>
       </div>
-    </>
-  );
+    </div>
+  )
 }

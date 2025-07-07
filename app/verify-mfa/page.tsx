@@ -4,7 +4,6 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { enrollMFA } from '@/lib/actions/mfa/enrollMfa'
 import { verifyMFA } from '@/lib/actions/mfa/verifyMfa'
-import { recoverMFA } from '@/lib/actions/mfa/recoverMfa'
 import { Icon } from '@iconify/react';
 
 
@@ -103,23 +102,26 @@ export default function MfaVerification() {
   };
 
   const handleRecover = async () => {
-    setError(null);
-    setRecoverMsg(null);
-    setIsRecovering(true);
+    setError(null)
+    setRecoverMsg(null)
+    setIsRecovering(true)
+  
     try {
-      const result = await recoverMFA();
+      const res = await fetch('/api/mfa/recover', { method: 'POST' })
+      const result = await res.json() as { sent: boolean; error?: string }
+  
       if (result.sent) {
-        setRecoverMsg('Recovery email sent successfully. Please check your inbox.');
+        setRecoverMsg('Recovery email sent successfully. Please check your inbox.')
       } else {
-        setError(result.error ?? 'Unable to send recovery email at this time.');
+        setError(result.error ?? 'Unable to send recovery email at this time.')
       }
     } catch (err) {
-      console.error("MFA Recovery Error:", err);
-      setError('An unexpected error occurred while trying to send a recovery email.');
+      console.error("MFA Recovery Error:", err)
+      setError('An unexpected error occurred while trying to send a recovery email.')
     } finally {
-      setIsRecovering(false);
+      setIsRecovering(false)
     }
-  };
+  }
 
   if (isLoading) {
     return <MfaPageSkeleton />;

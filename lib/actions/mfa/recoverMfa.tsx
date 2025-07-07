@@ -1,105 +1,111 @@
-// lib/actions/mfa/recoverMfa.tsx
 'use server'
 
-import { createClient } from '@/lib/supabase/client'
-import { createAdminClient } from '@/lib/supabase/admin.server'
+import { createClient } from '@/lib/supabase/server' // Ensure you're using the server client
+import { createAdminClient } from '@/lib/supabase/admin' // Your admin client
 import nodemailer from 'nodemailer'
 import { render } from '@react-email/render'
 import RecoverMfaEmail from '@/components/emails/RecoverMfaEmail'
-interface RecoverMFAResult {
-  sent: boolean
+
+// Define a clear result interface for type safety
+interface RecoverMfaResult {
+  success: boolean
   error?: string
 }
 
-export const recoverMFA = async (): Promise<RecoverMFAResult> => {
-  // 1) Build both clients
-  const userClient  = await createClient()
-  const adminClient = createAdminClient()
-
-  // 2) Make sure the user is authenticated
-  const {
-    data: { user },
-    error: userErr,
-  } = await userClient.auth.getUser()
-  if (userErr || !user) {
-    return { sent: false, error: 'Not authenticated' }
-  }
-
-  // 3) List & delete all existing TOTP factors (admin API bypasses AAL2)
-  const { data: listData, error: listErr } =
-    await userClient.auth.mfa.listFactors()
-  if (listErr) {
-    return { sent: false, error: listErr.message }
-  }
-
-  for (const factor of listData.all.filter((f) => f.factor_type === 'totp')) {
-    const { error: delErr } = await adminClient.auth.admin.mfa.deleteFactor({
-      userId: user.id,
-      id:     factor.id,
-    })
-    if (delErr) {
-      return { sent: false, error: delErr.message }
-    }
-  }
-
-  // 4) Enroll a new TOTP factor (user client at AAL1)
-  const { data: enrollData, error: enrollErr } =
-    await userClient.auth.mfa.enroll({
-      factorType:   'totp',
-      friendlyName: 'Recovery',
-    })
-  if (enrollErr || !enrollData) {
-    return { sent: false, error: enrollErr?.message || 'Enrollment failed' }
-  }
-
-  // 5) Configure SMTP
-  const host = process.env.SMTP_HOST
-  const port = Number(process.env.SMTP_PORT ?? 587)
-  const userSmtp = process.env.SMTP_USER
-  const pass = process.env.SMTP_PASS
-  const from = process.env.MFA_EMAIL_FROM
-  const supportEmail = process.env.SUPPORT_EMAIL || 'support@your-app.com'
-
-  if (!host || !from) {
-    console.error('Missing required SMTP environment variables (SMTP_HOST, MFA_EMAIL_FROM)')
-    return { sent: false, error: 'Server configuration error: Missing SMTP settings.' }
-  }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // true for 465, false for other ports
-    auth: userSmtp ? { user: userSmtp, pass } : undefined,
-    tls: {
-      // do not fail on invalid certs
-      rejectUnauthorized: false
-    }
-  });
-
+export const recoverMfa = async (): Promise<RecoverMfaResult> => {
+  // Use a try/catch block for robust error handling
   try {
-    await transporter.verify()
-  } catch (err: any) {
-    console.error('SMTP connection error:', err);
-    return { sent: false, error: `SMTP connection error: ${err.message}` }
-  }
+    // 1. Initialize Supabase clients within the action
+    const supabase = createClient()
+    const supabaseAdmin = createAdminClient()
 
-  // 6) Render & send the email
-  const html = render(
-    <RecoverMfaEmail
-      qrCodeUrl   ={enrollData.totp.qr_code}
-      supportEmail={supportEmail}
-    />
-  )
+    // 2. Get the authenticated user from the server client
+    // This is secure and automatically handles the session from the request context
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
 
-  try {
+    if (userError || !user) {
+      console.error('MFA Recovery Error: User not authenticated.')
+      return { success: false, error: 'Authentication failed. Please log in again.' }
+    }
+
+    // 3. List and delete all existing TOTP factors for the user
+    // This requires the admin client to bypass RLS and MFA policies
+    const { data: listData, error: listError } =
+      await supabaseAdmin.auth.mfa.listFactors({ userId: user.id })
+
+    if (listError) {
+      console.error(`MFA Recovery Error: Could not list factors for user ${user.id}`, listError)
+      return { success: false, error: 'Failed to retrieve existing MFA settings.' }
+    }
+    
+    // Filter for only TOTP factors before attempting deletion
+    const totpFactors = listData.all.filter((f) => f.factor_type === 'totp');
+    
+    for (const factor of totpFactors) {
+      const { error: deleteError } = await supabaseAdmin.auth.admin.mfa.deleteFactor({
+        userId: user.id,
+        id: factor.id,
+      })
+      if (deleteError) {
+        console.error(`MFA Recovery Error: Could not delete factor ${factor.id} for user ${user.id}`, deleteError)
+        return { success: false, error: 'Failed to remove an old MFA setting.' }
+      }
+    }
+
+    // 4. Enroll a new TOTP factor for the user
+    const { data: enrollData, error: enrollError } =
+      await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+      })
+
+    if (enrollError || !enrollData) {
+      console.error(`MFA Recovery Error: Could not enroll new factor for user ${user.id}`, enrollError)
+      return { success: false, error: 'Could not create a new MFA setup.' }
+    }
+
+    // 5. Configure SMTP transporter using environment variables
+    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MFA_EMAIL_FROM, SUPPORT_EMAIL } = process.env
+
+    if (!SMTP_HOST || !MFA_EMAIL_FROM) {
+      console.error('MFA Recovery Error: Missing required SMTP environment variables (SMTP_HOST, MFA_EMAIL_FROM)')
+      return { success: false, error: 'Server configuration error prevents sending email.' }
+    }
+    
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: Number(SMTP_PORT ?? 587),
+      secure: Number(SMTP_PORT) === 465,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false, // Use true in production with valid certs
+      },
+    })
+
+    // 6. Render the email template and send the email
+    const emailHtml = render(
+      <RecoverMfaEmail
+        qrCodeUrl={enrollData.totp.qr_code}
+        supportEmail={SUPPORT_EMAIL || 'support@example.com'}
+      />
+    )
+
     await transporter.sendMail({
-      from,
-      to:      user.email!,
-      subject: 'Recover your MFA setup',
-      html,
+      from: `"${process.env.APP_NAME || 'Your App'} Support" <${MFA_EMAIL_FROM}>`,
+      to: user.email!,
+      subject: 'MFA Recovery for Your Account',
+      html: emailHtml,
     })
-    return { sent: true }
-  } catch (err: any) {
-    return { sent: false, error: err.message }
+    
+    return { success: true }
+
+  } catch (error: any) {
+    console.error('An unexpected error occurred during MFA recovery:', error)
+    return { success: false, error: 'An unexpected server error occurred.' }
   }
 }

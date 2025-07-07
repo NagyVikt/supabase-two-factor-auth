@@ -92,6 +92,8 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
    SMTP_USER=[YOUR SMTP USER]
    SMTP_PASS=[YOUR SMTP PASSWORD]
    MFA_EMAIL_FROM=[SENDER EMAIL ADDRESS]
+   LOGO_IMAGE_URL=[URL TO EMAIL LOGO IMAGE]
+   LOGIN_LINK=[URL FOR LOGIN PAGE]
    ```
 
    Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)

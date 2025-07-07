@@ -91,15 +91,6 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
       await supabase.auth.mfa.enroll({ factorType: 'totp' });
     if (enrollErr || !enrollData) throw enrollErr ?? new Error('Failed to generate MFA factor.');
 
-    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-      email: user.email!,
-      type: 'magiclink',
-      options: { redirectTo: process.env.MFA_RECOVERY_LINK ?? 'http://localhost:3000/mfa-recovery' },
-    });
-    if (linkErr || !linkData?.properties?.action_link) {
-      throw linkErr ?? new Error('Failed to create recovery link.');
-    }
-
     // Send recovery email
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -111,20 +102,20 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
 
     const html = await render(
       React.createElement(RecoverMfaEmail, {
-        recoveryLink: linkData.properties.action_link,
+        recoveryLink: process.env.MFA_RECOVERY_LINK ?? 'http://localhost:3000/mfa',
+        supportEmail: process.env.SUPPORT_EMAIL!,
       })
     );
     await transporter.sendMail({
       from: `"${process.env.APP_NAME!}" <${process.env.MFA_EMAIL_FROM!}>`,
       to: user.email!,
       subject: 'Your Two-Factor Authentication Recovery',
-      html,
-    });
+      html,});
 
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('MFA recovery failed:', message);
+    console.error('MFA Recovery Failed SOP:', message);
     return { success: false, error: message };
   }
 }

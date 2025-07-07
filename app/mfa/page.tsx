@@ -15,8 +15,8 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { enrollMFA, verifyMFA } from '@/lib/actions/mfa'; // Assumes server actions are in this file
-
+import { enrollMFA } from '@/lib/actions/mfa/enrollMfa'; // Assumes server actions are in this file
+import {verifyMFA} from '@/lib/actions/mfa/verifyMfa'; // Client-side action for verification
 // Define a more specific type for the enrollment response
 type EnrollResponse = {
   qrCode?: string;

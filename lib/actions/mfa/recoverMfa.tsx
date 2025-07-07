@@ -71,6 +71,7 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
       <RecoverMfaEmail
         recoveryLink={linkData.properties.action_link}
         supportEmail={process.env.SUPPORT_EMAIL!}
+        appName={process.env.APP_NAME || 'Your App'}
       />
     );
     await transporter.sendMail({

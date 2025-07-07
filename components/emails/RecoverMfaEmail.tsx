@@ -1,5 +1,5 @@
 // components/emails/RecoverMfaEmail.tsx
-import React, { CSSProperties } from 'react'
+import React, { CSSProperties } from 'react';
 import {
   Html,
   Head,
@@ -10,126 +10,142 @@ import {
   Text,
   Img,
   Button,
-} from '@react-email/components'
+  Hr,
+  Link,
+} from '@react-email/components';
 
 interface RecoverMfaEmailProps {
-  recoveryLink: string
-  supportEmail: string
+  recoveryLink: string;
+  supportEmail: string;
+  appName: string; // Added for personalization
 }
 
+/**
+ * An improved email template for MFA recovery.
+ * It has a cleaner design and a single, clear call-to-action.
+ */
 export default function RecoverMfaEmail({
   recoveryLink,
   supportEmail,
+  appName = 'Your App', // Default value
 }: RecoverMfaEmailProps) {
+  const previewText = `Reset your ${appName} two-factor authentication`;
+
   return (
     <Html>
       <Head />
-      <Preview>Recover your MFA setup</Preview>
+      <Preview>{previewText}</Preview>
       <Body style={styles.main}>
         <Container style={styles.container}>
-          {/* Logo */}
-          <Img
-            src={process.env.LOGO_IMAGE_URL ?? "https://your-cdn.com/logo.png"}
-            alt="Your App"
-            width="48"
-            height="48"
-            style={styles.logo}
-          />
+          <Section style={styles.header}>
+            <Img
+              src={process.env.LOGO_IMAGE_URL ?? `https://placehold.co/100x100/000000/FFFFFF?text=${appName.charAt(0)}`}
+              alt={`${appName} Logo`}
+              width="48"
+              height="48"
+            />
+          </Section>
 
-          {/* Title */}
-          <Text style={styles.title}>Recover Your MFA Setup</Text>
-
-          {/* Intro */}
-          <Text style={styles.text}>
-            We received a request to reset your multi-factor authentication.
-            Click the button below to start the recovery process and set up your
-            authenticator app again.
+          <Text style={styles.title}>
+            Reset Two-Factor Authentication
           </Text>
 
-          {/* Recovery Link */}
-          <Section style={styles.section}>
+          <Text style={styles.text}>
+            We received a request to reset the two-factor authentication for your
+            account with {appName}.
+          </Text>
+
+          <Text style={styles.text}>
+            To proceed, click the button below. This link is valid for 15 minutes.
+          </Text>
+
+          <Section style={styles.buttonContainer}>
             <Button style={styles.button} href={recoveryLink}>
-              Reset MFA
+              Reset My Authenticator
             </Button>
           </Section>
 
-          {/* Call-to-Action */}
-          <Button
-            style={styles.button}
-            href={process.env.LOGIN_LINK ?? "http://localhost:3000/login"}
-          >
-            Go to Your Dashboard
-          </Button>
-
-          {/* Footer */}
-          <Text style={styles.footer}>
-            If you didn’t request this, you can ignore this email or contact us
-            at{' '}
-            <a href={`mailto:${supportEmail}`} style={styles.link}>
-              {supportEmail}
-            </a>
-            .
+          <Text style={styles.text}>
+            If you did not request this, please disregard this email. Your account
+            remains secure.
           </Text>
+
+          <Hr style={styles.hr} />
+
+          <Section style={styles.footer}>
+            <Text style={styles.footerText}>
+              This email was sent to you because of a recovery request on {appName}.
+              If you have any questions, please contact our support team at{' '}
+              <Link href={`mailto:${supportEmail}`} style={styles.footerLink}>
+                {supportEmail}
+              </Link>
+              .
+            </Text>
+          </Section>
         </Container>
       </Body>
     </Html>
-  )
+  );
 }
 
 const styles: Record<string, CSSProperties> = {
   main: {
-    backgroundColor: '#f5f7fa',
-    padding: '20px 0',
+    backgroundColor: '#f6f9fc',
+    fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   },
   container: {
     backgroundColor: '#ffffff',
-    borderRadius: '8px',
     margin: '0 auto',
-    padding: '40px 20px',
-    maxWidth: '600px',
-    fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    padding: '20px 0 48px',
+    marginBottom: '64px',
+    border: '1px solid #e6ebf1',
+    borderRadius: '8px',
   },
-  logo: {
-    display: 'block',
-    margin: '0 auto 20px',
+  header: {
+    padding: '0 48px',
   },
   title: {
     fontSize: '24px',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: '20px',
+    lineHeight: '1.25',
+    fontWeight: '600',
+    color: '#212121',
+    padding: '0 48px',
   },
   text: {
     fontSize: '16px',
-    lineHeight: 1.5,
-    margin: '20px 0',
+    lineHeight: '1.5',
+    color: '#525f7f',
+    padding: '0 48px',
   },
-  section: {
-    textAlign: 'center',
-    margin: '30px 0',
+  buttonContainer: {
+    padding: '24px 48px',
   },
   button: {
-    display: 'block',
-    width: 'fit-content',
-    margin: '0 auto',
-    padding: '12px 20px',
     backgroundColor: '#000000',
-    color: '#ffffff',
-    borderRadius: '4px',
+    borderRadius: '6px',
+    color: '#fff',
+    fontSize: '16px',
+    fontWeight: 'bold',
     textDecoration: 'none',
-    fontWeight: 500,
     textAlign: 'center',
+    display: 'block',
+    width: '100%',
+    padding: '14px 0',
+  },
+  hr: {
+    borderColor: '#e6ebf1',
+    margin: '20px 0',
   },
   footer: {
+    padding: '0 48px',
+  },
+  footerText: {
+    color: '#8898aa',
     fontSize: '12px',
-    lineHeight: 1.4,
-    color: '#666666',
-    marginTop: '30px',
-    textAlign: 'center',
+    lineHeight: '1.5',
   },
-  link: {
-    color: '#1a0dab',
-    textDecoration: 'none',
+  footerLink: {
+    color: '#8898aa',
+    textDecoration: 'underline',
   },
-}
+};

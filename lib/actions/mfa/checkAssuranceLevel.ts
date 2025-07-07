@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server.server'
+import { createClient } from '@/lib/supabase/admin.server'
 
 export const checkAssurance = async () => {
   const supabase = await createClient()

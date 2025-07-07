@@ -1,7 +1,7 @@
 // lib/actions/mfa/verifyMfa.ts
 'use server'
 
-import { createClient } from '@/lib/supabase/server.server'
+import { createClient } from '@/lib/supabase/admin.server'
 
 export interface VerifyMFAResult {
   success: boolean

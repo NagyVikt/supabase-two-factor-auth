@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { enrollMFA } from '@/lib/actions/mfa/enrollMfa'
 import { verifyMFA } from '@/lib/actions/mfa/verifyMfa'
+import { recoverMFA } from '@/lib/actions/mfa/recoverMfa'
 
 type EnrollResponse =
   | { totp: { qr_code: string } }
@@ -15,28 +16,29 @@ export default function MfaVerification() {
   const initialMessage = searchParams.get('message') ?? null
 
   const [qrCode, setQrCode] = useState<string | null>(null)
+  const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false)
   const [error, setError] = useState<string | null>(initialMessage)
   const [code, setCode] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
+  const [isEnrolling, setIsEnrolling] = useState(true)
+  const [recoverMsg, setRecoverMsg] = useState<string | null>(null)
+  const [isRecovering, setIsRecovering] = useState(false)
 
   // Enroll on mount
   useEffect(() => {
     ;(async () => {
-      let res: EnrollResponse
+      setIsEnrolling(true)
       try {
-        res = await enrollMFA()
-      } catch (e: any) {
-        setError('Failed to enroll for MFA')
-        return
-      }
-
-      if ('totp' in res) {
-        // new enrollment
-        setQrCode(res.totp.qr_code)
-      } else if (res.alreadyEnrolled) {
-        // if the user already has MFA, you might redirect them
-        // or you could fetch the existing QR code via listFactors + challenge
-        setError('MFA already enrolled. Please enter your existing code.')
+        const res: EnrollResponse = await enrollMFA()
+        if ('totp' in res) {
+          setQrCode(res.totp.qr_code)
+        } else {
+          setIsAlreadyEnrolled(true)
+        }
+      } catch {
+        setError('Failed to enroll for MFA setup.')
+      } finally {
+        setIsEnrolling(false)
       }
     })()
   }, [])
@@ -49,7 +51,7 @@ export default function MfaVerification() {
     try {
       const result = await verifyMFA({ verifyCode: code })
       if (result.success) {
-        router.push('/dashboard')
+        router.push('/protected')
       } else {
         setError(result.error ?? 'Invalid code')
       }
@@ -60,25 +62,46 @@ export default function MfaVerification() {
     }
   }
 
+  const handleRecover = async () => {
+    setRecoverMsg(null)
+    setIsRecovering(true)
+    try {
+      const result = await recoverMFA()
+      if (result.sent) {
+        setRecoverMsg('Recovery email sent – check your inbox.')
+      } else {
+        setRecoverMsg(result.error ?? 'Unable to send recovery email.')
+      }
+    } catch {
+      setRecoverMsg('Unable to send recovery email.')
+    } finally {
+      setIsRecovering(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
       <div className="w-full max-w-xl bg-white border border-black rounded-lg shadow p-6 flex flex-col md:flex-row gap-6">
-        {/* QR Code */}
-        <div className="flex-1 flex items-center justify-center">
-          {qrCode ? (
-            <div className="p-4 bg-white border border-black rounded-lg">
-              <img src={qrCode} alt="MFA QR Code" className="w-40 h-40" />
-              <p className="mt-2 text-xs text-black text-center">
-                Scan with your Authenticator app
-              </p>
-            </div>
-          ) : (
-            <p className="text-black">Loading QR code…</p>
-          )}
-        </div>
+        {/* QR Code / Skeleton (hidden if already enrolled) */}
+        {!isAlreadyEnrolled && (
+          <div className="flex-1 flex items-center justify-center">
+            {isEnrolling ? (
+              <div className="w-40 h-40 bg-gray-200 animate-pulse rounded-lg" />
+            ) : qrCode ? (
+              <div className="p-4 bg-white border border-black rounded-lg">
+                <img src={qrCode} alt="MFA QR Code" className="w-40 h-40" />
+                <p className="mt-2 text-xs text-black text-center">
+                  Scan with your Authenticator app
+                </p>
+              </div>
+            ) : (
+              <p className="text-black">Unable to load QR code.</p>
+            )}
+          </div>
+        )}
 
-        {/* Verification Form */}
-        <div className="flex-1">
+        {/* Verification & Recovery Form */}
+        <div className="flex-1 flex flex-col">
           <h2 className="text-2xl font-bold text-black mb-4 text-center md:text-left">
             Enter Your Code
           </h2>
@@ -89,7 +112,7 @@ export default function MfaVerification() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 mb-4">
             <div>
               <label
                 htmlFor="verifyCode"
@@ -139,6 +162,17 @@ export default function MfaVerification() {
               Verify
             </button>
           </form>
+
+          <button
+            onClick={handleRecover}
+            disabled={isRecovering}
+            className="w-full px-4 py-2 border border-black rounded text-black hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isRecovering ? 'Sending recovery email…' : 'Lost your code? Recover via email'}
+          </button>
+          {recoverMsg && (
+            <p className="mt-3 text-sm text-gray-700">{recoverMsg}</p>
+          )}
         </div>
       </div>
     </div>

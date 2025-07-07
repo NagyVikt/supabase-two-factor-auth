@@ -4,11 +4,22 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { verifyMFA } from '@/lib/actions/mfa/verifyMfa';
+import { recoverMFA } from '@/lib/actions/mfa/recoverMfa';
 
 export default function MfaVerification() {
   const searchParams = useSearchParams();
   const message = searchParams.get('message') || undefined;
   const [showMessage, setShowMessage] = useState(true);
+  const [recoveryMsg, setRecoveryMsg] = useState<string | null>(null);
+
+  const handleRecovery = async () => {
+    try {
+      await recoverMFA();
+      setRecoveryMsg('Recovery email sent. Check your inbox.');
+    } catch (err) {
+      setRecoveryMsg('Unable to send recovery email');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -59,6 +70,16 @@ export default function MfaVerification() {
           >
             Verify
           </button>
+          <button
+            type="button"
+            onClick={handleRecovery}
+            className="w-full py-2 px-4 border border-gray-300 rounded-md text-sm mt-4"
+          >
+            Send recovery email
+          </button>
+          {recoveryMsg && (
+            <p className="text-center text-sm text-gray-700 mt-2">{recoveryMsg}</p>
+          )}
         </form>
       </div>
     </div>

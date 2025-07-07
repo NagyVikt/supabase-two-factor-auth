@@ -1,42 +1,50 @@
-'use server';
+'use server'
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/client'
 
-export async function enrollMFA() {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: 'User not authenticated.' };
-    }
-
-    const { data: listData } = await supabase.auth.mfa.listFactors();
-    if (listData?.totp[0]?.status === 'verified') {
-      return { alreadyEnrolled: true };
-    }
-    
-    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
-    if (error) {
-      return { error: error.message };
-    }
-
-    return { totp: data.totp };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
-    return { error: message };
+interface MfaEnrollData {
+  id: string
+  type: 'totp' | (string & {})
+  totp: {
+    qr_code: string
+    secret: string
+    uri: string
   }
+  friendly_name?: string
+}
+
+export const enrollMFA = async () => {
+  const supabase = await createClient()
+
+  // Check current assurance level before enrolling
+  await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+
+  const factors = await supabase.auth.mfa.listFactors()
+  if (factors.error) {
+    throw factors.error
+  }
+
+  const existing = factors.data.all.find((f) => f.factor_type === 'totp')
+
+  if (existing) {
+    if (existing.status === 'unverified') {
+      // Remove unverified factor before re-enrolling
+      await supabase.auth.mfa.unenroll({ factorId: existing.id })
+    } else {
+      // Already enrolled and verified
+      return { alreadyEnrolled: true }
+    }
+  }
+
+  const { data, error } = await supabase.auth.mfa.enroll({
+    factorType: 'totp',
+  })
+  if (error) {
+    throw error
+  }
+
+  // Optionally check assurance level after enrolling
+  await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+
+  return data as MfaEnrollData
 }

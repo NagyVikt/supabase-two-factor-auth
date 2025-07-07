@@ -65,9 +65,8 @@ export default function MfaVerification() {
         } else if ('alreadyEnrolled' in res && res.alreadyEnrolled) {
           setIsAlreadyEnrolled(true);
           setQrCode(null);
-        } else if ('error' in res) {
-          setError(res.error);
         }
+        
       } catch (err) {
         console.error("MFA Enrollment Error:", err);
         setError('Failed to initialize MFA setup. Please try refreshing the page.');

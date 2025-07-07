@@ -11,7 +11,7 @@ import { recoverMfa } from '@/lib/actions/mfa/recoverMfa';
 type EnrollResponse =
   | { totp: { qr_code: string } }
   | { alreadyEnrolled: boolean }
-  | { error: string };
+  | { error: string | null };
 
 const MfaPageSkeleton = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900 p-4">
@@ -42,9 +42,13 @@ export default function MfaVerification() {
         setQrCode(res.totp.qr_code);
       } else if ('alreadyEnrolled' in res && res.alreadyEnrolled) {
         setIsAlreadyEnrolled(true);
+      } 
+      else if ('error' in res) {
+        setError(res.error as string | null);
       } else {
-        setError(res.error ?? 'Unable to enroll for MFA.');
+        setError('Unexpected response from server.');
       }
+
       setIsLoading(false);
     };
     performEnrollment();

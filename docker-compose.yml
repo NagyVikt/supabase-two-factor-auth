@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: with-supabase-app:latest
+    container_name: nextjs-app
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

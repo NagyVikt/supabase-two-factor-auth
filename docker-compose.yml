@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     image: with-supabase-app:latest
     container_name: nextjs-app
     env_file:
@@ -12,3 +15,8 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/_next/static/favicon.ico"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

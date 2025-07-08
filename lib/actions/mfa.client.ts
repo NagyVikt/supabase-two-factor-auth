@@ -21,7 +21,7 @@ export async function verifyMFA({ verifyCode }: { verifyCode: string }): Promise
     const { data: chall, error: challErr } = await supabase.auth.mfa.challenge({ factorId });
     if (challErr) return { success: false, error: challErr.message };
 
-    const { data: verifyData, error: verifyErr } = await supabase.auth.mfa.verify({
+    const { error: verifyErr } = await supabase.auth.mfa.verify({
       factorId,
       challengeId: chall.id,
       code: verifyCode,

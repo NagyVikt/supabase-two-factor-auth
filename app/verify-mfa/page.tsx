@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
 
@@ -42,7 +44,7 @@ const MfaPageSkeleton = () => (
 );
 
 // --- MAIN MFA COMPONENT ---
-export default function MfaVerification() {
+function MfaVerificationInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialMessage = searchParams.get('message') ?? null;
@@ -99,7 +101,7 @@ export default function MfaVerification() {
           setIsAlreadyEnrolled(true);
           setQrCode(null);
         } else if ('error' in res) {
-           setError(res.error);
+           setError(res.error as string | null);
         }
       } catch (err) {
         console.error("MFA Enrollment Error:", err);
@@ -269,7 +271,7 @@ export default function MfaVerification() {
                    )}
                  </button>
                  <p className="mt-2 text-xs text-gray-500 dark:text-neutral-500">
-                    Lost your device? We'll send a recovery link to your email.
+                    Lost your device? We&apos;ll send a recovery link to your email.
                  </p>
               </div>
             </>
@@ -277,5 +279,13 @@ export default function MfaVerification() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MfaVerification() {
+  return (
+    <Suspense fallback={<MfaPageSkeleton />}>
+      <MfaVerificationInner />
+    </Suspense>
   );
 }

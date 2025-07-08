@@ -102,12 +102,12 @@ export async function generateNewMfaFromToken(
 
     // 7. Generate the QR code data URL for the client
     // The otpauthURL is a standard format that authenticator apps understand.
-    const otpauthUrl = speakeasy.otpauthURL({
-      secret: newSecret.base32,
-      label: encodeURIComponent(user.email ?? 'user'),
-      issuer: 'YourAppName', // Should be the name of your application
-      algorithm: 'SHA1',
-    });
+      const otpauthUrl = speakeasy.otpauthURL({
+        secret: newSecret.base32,
+        label: encodeURIComponent(user.email ?? 'user'),
+        issuer: 'YourAppName', // Should be the name of your application
+        algorithm: 'sha1',
+      });
 
     // We convert this URL into a Base64-encoded image (a "data URL").
     // This data URL can be used directly as the `src` for an `<img>` tag on the client-side,

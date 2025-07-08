@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
 
@@ -20,7 +22,7 @@ const MfaPageSkeleton = () => (
   </div>
 );
 
-export default function MfaVerification() {
+function MfaVerificationInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialMessage = searchParams.get('message') ?? null;
@@ -191,5 +193,13 @@ export default function MfaVerification() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MfaVerification() {
+  return (
+    <Suspense fallback={<MfaPageSkeleton />}>
+      <MfaVerificationInner />
+    </Suspense>
   );
 }

@@ -111,7 +111,7 @@ export default function MfaResetFlowPage() {
                 setError(result.error || 'Invalid code. Please try again.');
                 setCode('');
             }
-        } catch (err) {
+        } catch {
             setError('Verification failed. An unexpected error occurred.');
         }
     });
@@ -174,7 +174,7 @@ export default function MfaResetFlowPage() {
         ) : (
              <div className="text-center">
                 <p className="text-sm text-gray-600 dark:text-neutral-400">
-                    If you're seeing this error, your link may be invalid or you may need to request a new one.
+                    If you&apos;re seeing this error, your link may be invalid or you may need to request a new one.
                 </p>
                  <button
                     onClick={() => router.push('/login')} // Redirect to a safe page like login

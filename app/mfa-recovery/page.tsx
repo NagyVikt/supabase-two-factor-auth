@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
 // --- SERVER ACTIONS ---
-// These actions are assumed to be in your project.
-// generateNewMfaFromToken should be designed to accept the access_token from the Supabase redirect.
+// These actions live in your project.
+// generateNewMfaFromToken expects the one-time recovery token from the query string.
 import { generateNewMfaFromToken } from '@/lib/actions/mfa/generateNewMfaFromToken'; 
 import { verifyMFA } from '@/lib/actions/mfa/verifyMfa';
 
@@ -53,12 +53,9 @@ export default function MfaResetFlowPage() {
   const [isVerifying, startVerifying] = useTransition();
 
   useEffect(() => {
-    // Supabase redirects with the token in the URL fragment (#), not a query param (?).
-    // We must parse it from window.location.hash on the client side.
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.substring(1)); // Remove the '#' and parse
-    const accessToken = params.get('access_token');
-    const errorDescription = params.get('error_description');
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const errorDescription = params.get('error');
 
     if (errorDescription) {
         setError(errorDescription);
@@ -66,8 +63,8 @@ export default function MfaResetFlowPage() {
         return;
     }
 
-    if (!accessToken) {
-      setError('No recovery token found in the URL. Please use the link from your email again.');
+    if (!token) {
+      setError('No token provided');
       setIsLoading(false);
       return;
     }
@@ -93,7 +90,7 @@ export default function MfaResetFlowPage() {
       }
     };
 
-    initializeNewMfa(accessToken);
+    initializeNewMfa(token);
   }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleVerifySubmit = async (e: React.FormEvent) => {

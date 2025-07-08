@@ -1,4 +1,7 @@
-import { SignUpForm } from "@/components/sign-up-form";
+// app/auth/sign-up/page.tsx
+export const dynamic = 'force-dynamic'
+
+import { SignUpForm } from '@/components/sign-up-form'
 
 export default function Page() {
   return (
@@ -7,5 +10,5 @@ export default function Page() {
         <SignUpForm />
       </div>
     </div>
-  );
+  )
 }

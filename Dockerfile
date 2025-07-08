@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.4
 
 # ─── 1) Build Stage ──────────────────────────────────────────────────────────
 FROM node:18-alpine AS builder

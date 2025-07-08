@@ -1,5 +1,4 @@
 version: "3.8"
-
 services:
   web:
     build:
@@ -8,10 +7,18 @@ services:
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-    image: with-supabase-app:latest
-    container_name: nextjs-app
+        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+        SMTP_HOST: ${SMTP_HOST}
+        SMTP_PORT: ${SMTP_PORT}
+        SMTP_USER: ${SMTP_USER}
+        SMTP_PASS: ${SMTP_PASS}
+        MFA_EMAIL_FROM: ${MFA_EMAIL_FROM}
+        LOGIN_LINK: ${LOGIN_LINK}
+        MFA_RECOVERY_LINK: ${MFA_RECOVERY_LINK}
+
     env_file:
       - .env
+
     ports:
       - "3000:3000"
     restart: unless-stopped

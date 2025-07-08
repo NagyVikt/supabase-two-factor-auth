@@ -1,5 +1,4 @@
-// components/emails/RecoverMfaEmail.tsx
-import React, { CSSProperties } from 'react';
+import React, { CSSProperties, FC } from 'react';
 import {
   Html,
   Head,
@@ -14,21 +13,21 @@ import {
   Link,
 } from '@react-email/components';
 
-interface RecoverMfaEmailProps {
+export interface RecoverMfaEmailProps {
   recoveryLink: string;
   supportEmail: string;
-  appName: string; // Added for personalization
+  appName?: string; // Added for personalization, optional to allow default
 }
 
 /**
- * An improved email template for MFA recovery.
- * It has a cleaner design and a single, clear call-to-action.
+ * Email template for MFA recovery.
+ * Provides a clear call-to-action to reset two-factor authentication.
  */
-export default function RecoverMfaEmail({
+const RecoverMfaEmail: FC<RecoverMfaEmailProps> = ({
   recoveryLink,
   supportEmail,
-  appName = 'Your App', // Default value
-}: RecoverMfaEmailProps) {
+  appName = 'Your App',
+}) => {
   const previewText = `Reset your ${appName} two-factor authentication`;
 
   return (
@@ -39,16 +38,19 @@ export default function RecoverMfaEmail({
         <Container style={styles.container}>
           <Section style={styles.header}>
             <Img
-              src={process.env.LOGO_IMAGE_URL ?? `https://placehold.co/100x100/000000/FFFFFF?text=${appName.charAt(0)}`}
+              src={
+                process.env.LOGO_IMAGE_URL ??
+                `https://placehold.co/100x100/000000/FFFFFF?text=${encodeURIComponent(
+                  appName.charAt(0)
+                )}`
+              }
               alt={`${appName} Logo`}
               width="48"
               height="48"
             />
           </Section>
 
-          <Text style={styles.title}>
-            Reset Two-Factor Authentication
-          </Text>
+          <Text style={styles.title}>Reset Two-Factor Authentication</Text>
 
           <Text style={styles.text}>
             We received a request to reset the two-factor authentication for your
@@ -66,38 +68,40 @@ export default function RecoverMfaEmail({
           </Section>
 
           <Text style={styles.text}>
-            If you did not request this, please disregard this email. Your account
-            remains secure.
+            If you did not request this, you can safely ignore this email.
           </Text>
 
           <Hr style={styles.hr} />
 
           <Section style={styles.footer}>
             <Text style={styles.footerText}>
-              This email was sent to you because of a recovery request on {appName}.
-              If you have any questions, please contact our support team at{' '}
+              For questions, contact support at{' '}
               <Link href={`mailto:${supportEmail}`} style={styles.footerLink}>
                 {supportEmail}
-              </Link>
-              .
+              </Link>.
             </Text>
           </Section>
         </Container>
       </Body>
     </Html>
   );
-}
+};
+
+// Export component type if needed elsewhere
+export type RecoverMfaEmailComponent = typeof RecoverMfaEmail;
+
+export default RecoverMfaEmail;
 
 const styles: Record<string, CSSProperties> = {
   main: {
     backgroundColor: '#f6f9fc',
-    fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+    fontFamily:
+      '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   },
   container: {
     backgroundColor: '#ffffff',
     margin: '0 auto',
     padding: '20px 0 48px',
-    marginBottom: '64px',
     border: '1px solid #e6ebf1',
     borderRadius: '8px',
   },
@@ -107,7 +111,7 @@ const styles: Record<string, CSSProperties> = {
   title: {
     fontSize: '24px',
     lineHeight: '1.25',
-    fontWeight: '600',
+    fontWeight: 600,
     color: '#212121',
     padding: '0 48px',
   },
@@ -123,7 +127,7 @@ const styles: Record<string, CSSProperties> = {
   button: {
     backgroundColor: '#000000',
     borderRadius: '6px',
-    color: '#fff',
+    color: '#ffffff',
     fontSize: '16px',
     fontWeight: 'bold',
     textDecoration: 'none',

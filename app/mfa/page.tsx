@@ -1,151 +1,138 @@
-// app/mfa/MfaClient.tsx
-'use client'
+'use client';
 
-import React, { Suspense, useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { Icon } from '@iconify/react'
-import Image from 'next/image'
+export const dynamic = 'force-dynamic';
 
-import { enrollMFA } from '@/lib/actions/mfa/enrollMfa'
-import { verifyMFA } from '@/lib/actions/mfa/verifyMfa'
-import { recoverMfa } from '@/lib/actions/mfa/recoverMfa'
+import React, { Suspense, useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Icon } from '@iconify/react';
 
+import { enrollMFA } from '@/lib/actions/mfa/enrollMfa';
+import { verifyMFA } from '@/lib/actions/mfa/verifyMfa';
+import { recoverMfa } from '@/lib/actions/mfa/recoverMfa';
+import Image from 'next/image';
 type EnrollResponse =
   | { totp: { qr_code: string } }
   | { alreadyEnrolled: boolean }
-  | { error: string | null }
+  | { error: string | null };
 
 const MfaPageSkeleton = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900 p-4">
+    {/* ...same skeleton as before */}
     <div className="animate-pulse">Loading MFA…</div>
   </div>
-)
+);
 
 function MfaVerificationInner() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const initialMessage = searchParams.get('message') ?? null
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialMessage = searchParams.get('message') ?? null;
 
-  const [isLoading, setIsLoading] = useState(true)
-  const [qrCode, setQrCode] = useState<string | null>(null)
-  const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false)
-  const [error, setError] = useState<string | null>(initialMessage)
-  const [code, setCode] = useState('')
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [recoverMsg, setRecoverMsg] = useState<string | null>(null)
-  const [isRecovering, setIsRecovering] = useState(false)
-  const [attempts, setAttempts] = useState(0)
-  const [blockedUntil, setBlockedUntil] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false);
+  const [error, setError] = useState<string | null>(initialMessage);
+  const [code, setCode] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [recoverMsg, setRecoverMsg] = useState<string | null>(null);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
 
-  // load + persist rate-limit state
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('mfaAttempts')
+      const raw = localStorage.getItem('mfaEnrollAttempts');
       if (raw) {
-        const { attempts: a, blockedUntil: b } = JSON.parse(raw)
-        if (typeof a === 'number') setAttempts(a)
-        if (typeof b === 'number' && Date.now() < b) setBlockedUntil(b)
+        const { attempts: a, blockedUntil: b } = JSON.parse(raw);
+        if (typeof a === 'number') setAttempts(a);
+        if (typeof b === 'number') setBlockedUntil(b);
       }
     } catch {
-      localStorage.removeItem('mfaAttempts')
+      // ignore malformed data
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(
-      'mfaAttempts',
+      'mfaEnrollAttempts',
       JSON.stringify({ attempts, blockedUntil })
-    )
-  }, [attempts, blockedUntil])
+    );
+  }, [attempts, blockedUntil]);
 
-  // enroll on mount
   useEffect(() => {
-    (async () => {
-      setIsLoading(true)
-      const res: EnrollResponse = await enrollMFA()
+    const performEnrollment = async () => {
+      setIsLoading(true);
+      const res: EnrollResponse = await enrollMFA();
       if ('totp' in res) {
-        setQrCode(res.totp.qr_code)
+        setQrCode(res.totp.qr_code);
       } else if ('alreadyEnrolled' in res && res.alreadyEnrolled) {
-        setIsAlreadyEnrolled(true)
-      } else if ('error' in res) {
-        // Narrow at runtime:
-        if (typeof res.error === 'string') {
-          setError(res.error)   // OK: string
-        } else {
-          setError(null)        // explicitly set null otherwise
-        }
-      }
-      setIsLoading(false)
-    })()
-  }, [])
-
-
-  // handle code submit
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (code.length !== 6 || isVerifying) return
-
-    const now = Date.now()
-    if (blockedUntil && now < blockedUntil) {
-      const mins = Math.ceil((blockedUntil - now) / 60000)
-      setError(`Too many incorrect codes. Try again in ${mins} minute${mins>1?'s':''}.`)
-      return
-    }
-
-    setIsVerifying(true)
-    const result = await verifyMFA({ verifyCode: code })
-    setIsVerifying(false)
-
-    if (result.success) {
-      setAttempts(0)
-      setBlockedUntil(null)
-      router.push(searchParams.get('callbackUrl') || '/protected')
-    } else {
-      const next = attempts + 1
-      if (next >= 5) {
-        const block = Date.now() + 5*60*1000
-        setBlockedUntil(block)
-        setAttempts(0)
-        setError('Too many incorrect codes. Please wait 5 minutes.')
+        setIsAlreadyEnrolled(true);
+      } 
+      else if ('error' in res) {
+        setError(res.error as string | null);
       } else {
-        setAttempts(next)
-        setError(result.error ?? 'Invalid code.')
+        setError('Unexpected response from server.');
       }
-      setCode('')
-    }
-  }
 
-  // handle recovery
-  const handleRecover = async () => {
-    if (isRecovering) return
-    setIsRecovering(true)
-    setError(null)
-    const result = await recoverMfa()
-    setIsRecovering(false)
+      setIsLoading(false);
+    };
+    performEnrollment();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (code.length !== 6 || isVerifying) return;
+    const now = Date.now();
+    if (blockedUntil && now < blockedUntil) {
+      const mins = Math.ceil((blockedUntil - now) / 60000);
+      setError(`Too many incorrect codes. Try again in ${mins} minute${mins > 1 ? 's' : ''}.`);
+      return;
+    }
+    setError(null);
+    setIsVerifying(true);
+    const result = await verifyMFA({ verifyCode: code });
+    setIsVerifying(false);
 
     if (result.success) {
-      setRecoverMsg('Recovery email sent—check your inbox.')
+      setAttempts(0);
+      setBlockedUntil(null);
+      router.push(searchParams.get('callbackUrl') || '/protected');
     } else {
-      setError(result.error ?? 'Failed to send recovery email.')
+      const newAttempts = attempts + 1;
+      if (newAttempts >= 3) {
+        setBlockedUntil(Date.now() + 10 * 60 * 1000);
+        setAttempts(0);
+        setError('Too many incorrect codes. Please wait 10 minutes before trying again.');
+      } else {
+        setAttempts(newAttempts);
+        setError(result.error ?? 'Invalid code.');
+      }
+      setCode('');
     }
-  }
+  };
 
-  if (isLoading) return <MfaPageSkeleton />
+  const handleRecover = async () => {
+    if (isRecovering) return;
+    setError(null);
+    setIsRecovering(true);
+    const result = await recoverMfa();
+    setIsRecovering(false);
+
+    if (result.success) {
+      setRecoverMsg('Recovery email sent — check your inbox.');
+    } else {
+      setError(result.error ?? 'Failed to send recovery email.');
+    }
+  };
+
+  if (isLoading) return <MfaPageSkeleton />;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900 p-4">
-      <div className="w-full max-w-xl bg-white dark:bg-neutral-800 border rounded-lg shadow-md p-6 flex flex-col md:flex-row gap-6">
-        {qrCode && !isAlreadyEnrolled && (
+      <div className="w-full max-w-xl bg-white dark:bg-neutral-800 border rounded-lg shadow-md p-6 flex flex-col md:flex-row gap-6 transition-all">
+        {qrCode && (
           <div className="md:w-52 flex flex-col items-center">
             <h3 className="text-lg font-semibold mb-2">Scan to Enroll</h3>
-            <Image
-              src={qrCode}
-              alt="MFA QR Code"
-              width={160}
-              height={160}
-              className="border rounded-lg"
-              priority
-            />
+            <img src={qrCode} alt="MFA QR Code" className="w-40 h-40 border rounded-lg" />
             <p className="mt-2 text-xs text-gray-600 dark:text-neutral-400 text-center">
               Use your authenticator app to scan.
             </p>
@@ -156,7 +143,7 @@ function MfaVerificationInner() {
           <p className="text-sm text-gray-600 mb-4 text-center">
             {isAlreadyEnrolled
               ? 'Enter the code from your authenticator app.'
-              : 'To finish setup, enter the 6-digit code from your app.'}
+              : 'To finish setup, enter the code from your authenticator app.'}
           </p>
 
           {error && (
@@ -183,7 +170,7 @@ function MfaVerificationInner() {
             />
             <button
               type="submit"
-              disabled={code.length!==6 || isVerifying}
+              disabled={code.length !== 6 || isVerifying}
               className="w-full py-2 bg-black text-white rounded-md disabled:opacity-50"
             >
               {isVerifying ? <Icon icon="mdi:loading" className="animate-spin" /> : 'Verify Code'}
@@ -191,8 +178,11 @@ function MfaVerificationInner() {
           </form>
 
           <div className="flex items-center mb-4">
-            <div className="flex-grow border-t" /><span className="px-2 text-xs text-gray-400">Or</span><div className="flex-grow border-t" />
+            <div className="flex-grow border-t" />
+            <span className="px-2 text-xs text-gray-400">Or</span>
+            <div className="flex-grow border-t" />
           </div>
+
           <button
             onClick={handleRecover}
             disabled={isRecovering}
@@ -203,7 +193,7 @@ function MfaVerificationInner() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default function MfaVerification() {
@@ -211,5 +201,5 @@ export default function MfaVerification() {
     <Suspense fallback={<MfaPageSkeleton />}>
       <MfaVerificationInner />
     </Suspense>
-  )
+  );
 }

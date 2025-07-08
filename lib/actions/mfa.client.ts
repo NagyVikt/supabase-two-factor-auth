@@ -33,8 +33,8 @@ export async function verifyMFA({ verifyCode }: { verifyCode: string }): Promise
     // The session is now AAL2.
 
     return { success: true };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+  } catch (_err) {
+    const message = _err instanceof Error ? _err.message : 'An unexpected error occurred.';
     return { success: false, error: message };
   }
 }

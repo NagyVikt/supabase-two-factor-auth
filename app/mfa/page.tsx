@@ -9,7 +9,7 @@ import { Icon } from '@iconify/react';
 import { enrollMFA } from '@/lib/actions/mfa/enrollMfa';
 import { verifyMFA } from '@/lib/actions/mfa/verifyMfa';
 import { recoverMfa } from '@/lib/actions/mfa/recoverMfa';
-
+import Image from 'next/image';
 type EnrollResponse =
   | { totp: { qr_code: string } }
   | { alreadyEnrolled: boolean }
@@ -132,7 +132,14 @@ function MfaVerificationInner() {
         {qrCode && (
           <div className="md:w-52 flex flex-col items-center">
             <h3 className="text-lg font-semibold mb-2">Scan to Enroll</h3>
-            <img src={qrCode} alt="MFA QR Code" className="w-40 h-40 border rounded-lg" />
+            <Image
+            src={qrCode!}
+            alt="MFA QR Code"
+            width={160}
+            height={160}
+            className="border rounded-lg"
+            priority
+          />
             <p className="mt-2 text-xs text-gray-600 dark:text-neutral-400 text-center">
               Use your authenticator app to scan.
             </p>

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
-
+import Image from 'next/image';
 // --- SERVER ACTIONS ---
 // These are now imported from your project's lib/actions directory.
 import { enrollMFA } from '@/lib/actions/mfa/enrollMfa';
@@ -149,8 +149,8 @@ function MfaVerificationInner() {
         }
         setCode('');
       }
-    } catch (err) {
-      console.error("MFA Verification Error:", err);
+    } catch (_err) {
+      console.error("MFA Verification Error:", _err);
       setError('An unexpected error occurred during verification.');
     } finally {
       setIsVerifying(false);
@@ -190,7 +190,14 @@ function MfaVerificationInner() {
           <div className="w-full md:w-52 flex-shrink-0 flex flex-col items-center justify-center text-center">
             <h3 className="text-lg font-semibold text-black dark:text-white mb-3">Scan to Enroll</h3>
             <div className="p-3 bg-white border border-gray-300 dark:border-neutral-600 rounded-lg shadow-inner">
-              <img src={qrCode} alt="MFA QR Code" className="w-40 h-40" onError={(e) => { e.currentTarget.src = 'https://placehold.co/160x160/e2e8f0/e2e8f0?text=QR'; e.currentTarget.alt = 'QR Code Placeholder'; }} />
+            <Image
+              src={qrCode!}
+              alt="MFA QR Code"
+              width={160}
+              height={160}
+              className="border rounded-lg"
+              priority
+            />
             </div>
             <p className="mt-3 text-xs text-gray-600 dark:text-neutral-400">
               Use an authenticator app like Google Authenticator or Authy.

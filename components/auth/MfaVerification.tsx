@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import { enrollMFA, recoverMfa } from '@/lib/actions/mfa.server'; // Server actions
 import { verifyMFA } from '@/lib/actions/mfa.client'; // Client-side action
-
+import Image from 'next/image';
 type EnrollResponse = {
   totp?: { qr_code: string };
   alreadyEnrolled?: boolean;
@@ -111,8 +111,8 @@ export default function MfaVerification() {
       } else {
         setError(result.error ?? 'Could not send recovery email.');
       }
-    } catch (err) {
-      console.error('MFA Recovery Error:', err);
+    } catch (_err) {
+      console.error('MFA Recovery Error:', _err);
       setError('An unexpected error occurred while trying to send a recovery email.');
     } finally {
       setIsRecovering(false);
@@ -130,7 +130,15 @@ export default function MfaVerification() {
           <div className="w-full md:w-52 flex-shrink-0 flex flex-col items-center justify-center text-center">
             <h3 className="text-lg font-semibold text-black dark:text-white mb-3">Scan to Enroll</h3>
             <div className="p-3 bg-white border border-gray-300 dark:border-neutral-600 rounded-lg shadow-inner">
-              <img src={qrCode} alt="MFA QR Code" className="w-40 h-40" />
+            <Image
+              src={qrCode!}
+              alt="MFA QR Code"
+              width={160}
+              height={160}
+              className="border rounded-lg"
+              priority
+            />
+
             </div>
             <p className="mt-3 text-xs text-gray-600 dark:text-neutral-400">Scan with your authenticator app.</p>
           </div>

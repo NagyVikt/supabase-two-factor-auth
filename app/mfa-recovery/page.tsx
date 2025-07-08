@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
-
+import Image from 'next/image';
 // --- SERVER ACTIONS ---
 // These actions are assumed to be in your project.
 // generateNewMfaFromToken should be designed to accept the access_token from the Supabase redirect.
@@ -83,8 +83,8 @@ export default function MfaResetFlowPage() {
         } else {
           setError(result?.error ?? 'Invalid or expired token. Please request a new recovery link.');
         }
-      } catch (err) {
-        console.error('MFA Reset Client Error:', err);
+      } catch (_err) {
+        console.error('MFA Reset Client Error:', _err);
         setError('An unexpected error occurred while resetting your authenticator. Please try again.');
       } finally {
         setIsLoading(false);
@@ -143,7 +143,14 @@ export default function MfaResetFlowPage() {
               Your old authenticator is disabled. Scan this new QR code with your app to secure your account.
             </p>
             <div className="flex justify-center p-3 bg-white border border-gray-300 dark:border-neutral-600 rounded-lg shadow-inner">
-                <img src={qrCode} alt="New MFA QR Code" className="w-48 h-48" onError={(e) => { e.currentTarget.src = 'https://placehold.co/192x192/e2e8f0/e2e8f0?text=QR'; e.currentTarget.alt = 'QR Code Placeholder'; }} />
+            <Image
+            src={qrCode!}
+            alt="new MFA QR Code"
+            width={160}
+            height={160}
+            className="border rounded-lg"
+            priority
+          />
             </div>
             <form onSubmit={handleVerifySubmit} className="space-y-4 pt-2">
               <div>

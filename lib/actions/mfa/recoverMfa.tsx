@@ -43,7 +43,7 @@ export async function recoverMfa(): Promise<{ success: boolean; error?: string }
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       email: user.email!,
       type: 'magiclink',
-      options: { redirectTo: process.env.MFA_RECOVERY_LINK ?? 'http://localhost:3000/mfa-recovery' },
+      options: { redirectTo: process.env.MFA_RECOVERY_LINK ?? 'http://localhost:3000/recover' },
     });
     if (linkErr || !linkData?.properties?.action_link) {
       throw linkErr || new Error('Failed to create recovery link.');

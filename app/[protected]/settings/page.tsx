@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, FormEvent } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/browser'
 
-// ——— Typed ShadCN‐style UI components (same as before) ———
+// ——— Typed ShadCN-style UI components ———
 type DivProps = React.HTMLAttributes<HTMLDivElement>
 type ButtonHTMLProps = React.ButtonHTMLAttributes<HTMLButtonElement>
 type InputHTMLProps = React.InputHTMLAttributes<HTMLInputElement>
@@ -42,22 +43,25 @@ const CardContent: React.FC<CardContentProps> = ({ className = '', ...props }) =
   <div className={`p-6 pt-0 ${className}`} {...props} />
 )
 
-interface ButtonProps extends ButtonHTMLProps { className?: string; variant?: 'destructive' }
+interface ButtonProps extends ButtonHTMLProps { className?: string; variant?: 'destructive'; size?: 'sm' }
 const Button: React.FC<ButtonProps> = ({
   className = '',
   variant,
+  size,
   children,
   ...props
 }) => {
-  const base =
+  let base =
     'inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50'
+  if (size === 'sm') base += ' px-2 py-1 text-xs'
+  else base += ' px-4 py-2'
   const variantClasses =
     variant === 'destructive'
       ? 'bg-red-500 text-white hover:bg-red-600'
       : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200'
 
   return (
-    <button className={`${base} ${variantClasses} px-4 py-2 ${className}`} {...props}>
+    <button className={`${base} ${variantClasses} ${className}`} {...props}>
       {children}
     </button>
   )
@@ -89,15 +93,14 @@ const Badge: React.FC<BadgeProps> = ({ className = '', children, ...props }) => 
 // ——— Main Settings component ———
 export default function Settings() {
   const supabase = createClient()
-  const searchParams = useSearchParams()
-  const message = searchParams.get('message')
+  const message = useSearchParams().get('message') ?? ''
 
   const [loading, setLoading] = useState(true)
   const [hasMfa, setHasMfa] = useState(false)
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
   const [code, setCode] = useState('')
 
-  // 1) On mount, fetch the user’s enrolled MFA factors via API
+  // Fetch MFA status on mount
   useEffect(() => {
     ;(async () => {
       setLoading(true)
@@ -107,15 +110,14 @@ export default function Settings() {
           const json = await res.json()
           setHasMfa(json.hasMfa)
         }
-      } catch (err) {
-        console.error('MFA status error', err)
-
+      } catch {
+        console.error('MFA status error')
       }
       setLoading(false)
     })()
   }, [])
 
-  // 2) Enroll → get a QR-code URL from Supabase
+  // Enroll TOTP
   const handleEnroll = async () => {
     setLoading(true)
     const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
@@ -127,53 +129,56 @@ export default function Settings() {
     setLoading(false)
   }
 
-  // 3) Verify the code → clear QR & mark as enabled
+  // Verify code
   const handleVerify = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const { data: factorData, error: factorError } = await supabase.auth.mfa.listFactors()
-    if (factorError || !factorData.all.length) {
-      console.error('MFA list error', factorError)
+    const { data: factorData, error: listError } = await supabase.auth.mfa.listFactors()
+    if (listError || factorData.all.length === 0) {
+      console.error('MFA list error', listError)
       setLoading(false)
       return
     }
     const factorId = factorData.all[0].id
-    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
+
+    const { data: challengeData, error: challengeError } =
+      await supabase.auth.mfa.challenge({ factorId })
     if (challengeError) {
       console.error('MFA challenge error', challengeError)
       setLoading(false)
       return
     }
-    const { error } = await supabase.auth.mfa.verify({
+
+    const { error: verifyError } = await supabase.auth.mfa.verify({
       factorId,
       challengeId: challengeData.id,
       code,
     })
-    if (!error) {
+    if (!verifyError) {
       setHasMfa(true)
       setQrCodeUrl(null)
     } else {
-      console.error('MFA verify error', error)
+      console.error('MFA verify error', verifyError)
     }
     setLoading(false)
   }
 
-  // 4) Unenroll → remove MFA
+  // Unenroll TOTP
   const handleUnenroll = async () => {
     setLoading(true)
     const { data, error: listError } = await supabase.auth.mfa.listFactors()
-    if (listError || !data.all.length) {
+    if (listError || data.all.length === 0) {
       console.error('MFA list error', listError)
       setLoading(false)
       return
     }
     const factorId = data.all[0].id
-    const { error } = await supabase.auth.mfa.unenroll({ factorId })
-    if (!error) {
+    const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId })
+    if (!unenrollError) {
       setHasMfa(false)
       setQrCodeUrl(null)
     } else {
-      console.error('MFA unenroll error', error)
+      console.error('MFA unenroll error', unenrollError)
     }
     setLoading(false)
   }
@@ -198,10 +203,17 @@ export default function Settings() {
     <div className="flex justify-center py-12">
       <Card className="w-full max-w-md relative">
         {hasMfa && !qrCodeUrl && (
-          <div className="absolute top-4 left-6">
+          <div className="absolute top-4 left-6 flex items-center gap-2">
             <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
               Enabled
             </Badge>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleUnenroll}
+            >
+              Disable 2FA
+            </Button>
           </div>
         )}
 
@@ -220,13 +232,15 @@ export default function Settings() {
           )}
 
           {qrCodeUrl && (
-            <div className="flex flex-col items-center gap-2">
-              <img
+            <div className="relative h-44 w-44 self-center">
+              <Image
                 src={qrCodeUrl}
                 alt="Scan this QR code"
-                className="h-44 w-44 rounded-lg bg-white p-2"
+                fill
+                className="rounded-lg bg-white p-2"
+                priority
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 Scan with your authenticator app
               </p>
             </div>
@@ -251,10 +265,10 @@ export default function Settings() {
             </form>
           )}
 
-
-
           {message && (
-            <p className="text-sm text-red-500 mt-4">{message}</p>
+            <p className="text-sm text-red-500 mt-4">
+              {message}
+            </p>
           )}
         </CardContent>
       </Card>

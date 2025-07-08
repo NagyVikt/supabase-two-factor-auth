@@ -60,8 +60,6 @@ RUN npm ci --production
 
 # Copy built assets from builder
 COPY --from=builder /app/.next     ./.next
-COPY --from=builder /app/next.config.js ./next.config.js
-COPY --from=builder /app/middleware.ts   ./middleware.ts
 COPY --from=builder /app/lib        ./lib
 COPY --from=builder /app/app        ./app
 COPY --from=builder /app/components ./components

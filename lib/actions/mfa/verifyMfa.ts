@@ -1,7 +1,8 @@
 // lib/actions/mfa/verifyMfa.ts
-'use client';
+"use client";
 
-import supabase from '@/lib/supabase/browser';
+import { createClient } from "@/lib/supabase/browser";
+import type { Factor } from "@supabase/auth-js";
 
 export interface VerifyMfaResult {
   success: boolean;
@@ -14,22 +15,24 @@ export async function verifyMFA({
   verifyCode: string;
 }): Promise<VerifyMfaResult> {
   if (!verifyCode) {
-    return { success: false, error: 'Missing verification code' };
+    return { success: false, error: "Missing verification code" };
   }
 
   try {
+    const supabase = createClient();
     // 1) List existing MFA factors for the user
-    const { data: listData, error: listErr } = await supabase.auth.mfa.listFactors();
+    const { data: listData, error: listErr } =
+      await supabase.auth.mfa.listFactors();
     if (listErr) {
       return { success: false, error: listErr.message };
     }
 
     // 2) Pick an unverified factor if available, otherwise fall back to the first one
     const factorId =
-      listData.all.find((f) => f.status === 'unverified')?.id ??
+      listData.all.find((f: Factor) => f.status === "unverified")?.id ??
       listData.all[0]?.id;
     if (!factorId) {
-      return { success: false, error: 'No MFA factor found to verify.' };
+      return { success: false, error: "No MFA factor found to verify." };
     }
 
     // 3) Initiate a challenge for that factor
@@ -53,7 +56,8 @@ export async function verifyMFA({
     // 5) Success!
     return { success: true };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+    const message =
+      err instanceof Error ? err.message : "An unexpected error occurred.";
     return { success: false, error: message };
   }
 }

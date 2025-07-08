@@ -52,10 +52,9 @@ export default function MfaResetFlowPage() {
   const [isVerifying, startVerifying] = useTransition();
 
   useEffect(() => {
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.substring(1));
-    const accessToken = params.get('access_token');
-    const errorDescription = params.get('error_description');
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const errorDescription = params.get('error');
 
     if (errorDescription) {
       setError(decodeURIComponent(errorDescription));
@@ -63,15 +62,15 @@ export default function MfaResetFlowPage() {
       return;
     }
 
-    if (!accessToken) {
-      setError('No recovery token found in the URL. Please use the link from your email again.');
+    if (!token) {
+      setError('No token provided');
       setIsLoading(false);
       return;
     }
 
     (async () => {
       try {
-        const result: NewMfaResponse = await generateNewMfaFromToken(accessToken);
+        const result: NewMfaResponse = await generateNewMfaFromToken(token!);
         if (result.success && result.qrCode) {
           setQrCode(result.qrCode);
         } else {

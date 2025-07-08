@@ -1,24 +1,36 @@
-'use client'; // This directive is not strictly needed but clarifies intent
+"use client"; // This directive is not strictly needed but clarifies intent
 
-import supabase from '@/lib/supabase/browser'; // Your client-side Supabase singleton
+import { createClient } from "@/lib/supabase/browser";
+import type { Factor } from "@supabase/auth-js";
 
 export interface VerifyMFAResult {
   success: boolean;
   error?: string;
 }
 
-export async function verifyMFA({ verifyCode }: { verifyCode: string }): Promise<VerifyMFAResult> {
+export async function verifyMFA({
+  verifyCode,
+}: {
+  verifyCode: string;
+}): Promise<VerifyMFAResult> {
   if (!verifyCode) {
-    return { success: false, error: 'Missing verification code' };
+    return { success: false, error: "Missing verification code" };
   }
   try {
-    const { data: listData, error: listErr } = await supabase.auth.mfa.listFactors();
+    const supabase = createClient();
+    const { data: listData, error: listErr } =
+      await supabase.auth.mfa.listFactors();
     if (listErr) return { success: false, error: listErr.message };
 
-    const factorId = listData.all.find(f => f.status === 'unverified')?.id ?? listData.all[0]?.id;
-    if (!factorId) return { success: false, error: 'No MFA factor found to verify.' };
+    const factorId =
+      listData.all.find((f: Factor) => f.status === "unverified")?.id ??
+      listData.all[0]?.id;
+    if (!factorId)
+      return { success: false, error: "No MFA factor found to verify." };
 
-    const { data: chall, error: challErr } = await supabase.auth.mfa.challenge({ factorId });
+    const { data: chall, error: challErr } = await supabase.auth.mfa.challenge({
+      factorId,
+    });
     if (challErr) return { success: false, error: challErr.message };
 
     const { error: verifyErr } = await supabase.auth.mfa.verify({
@@ -34,7 +46,8 @@ export async function verifyMFA({ verifyCode }: { verifyCode: string }): Promise
 
     return { success: true };
   } catch (_err) {
-    const message = _err instanceof Error ? _err.message : 'An unexpected error occurred.';
+    const message =
+      _err instanceof Error ? _err.message : "An unexpected error occurred.";
     return { success: false, error: message };
   }
 }

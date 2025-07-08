@@ -1,12 +1,13 @@
 /* ─────────── lib/supabase/browser.ts ─────────── */
-'use client'                                         // browser bundle only
-import { createBrowserClient } from '@supabase/ssr'  // new     SDK
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './utils'
+"use client";
+import { createBrowserClient } from "@supabase/ssr";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./utils";
 
-const supabase = createBrowserClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-)                                                   // one socket, many hooks
+let supabase: ReturnType<typeof createBrowserClient> | undefined;
 
-export default supabase
-export function createClient() { return supabase }  // ⬅ legacy wrapper if you like
+export function createClient() {
+  if (!supabase) {
+    supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return supabase;
+}

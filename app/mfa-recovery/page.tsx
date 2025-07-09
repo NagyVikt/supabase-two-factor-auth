@@ -1,4 +1,3 @@
-// app/mfa-reset/page.tsx
 'use client';
 
 import React, { useEffect, useState, useTransition } from 'react';
@@ -42,10 +41,8 @@ export default function MfaResetFlowPage() {
   const [isVerifying, startVerifying] = useTransition();
 
   useEffect(() => {
-    // Parse both query and hash params
     const searchParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    // Accept either ?token= or #access_token=
     const token = searchParams.get('token') || hashParams.get('access_token');
     const errorDesc = searchParams.get('error') || hashParams.get('error');
 
@@ -61,7 +58,7 @@ export default function MfaResetFlowPage() {
       return;
     }
 
-    const init = async (t: string) => {
+    (async (t: string) => {
       try {
         const result: NewMfaResponse = await generateNewMfaFromToken(t);
         if (result.success && result.qrCode) {
@@ -74,12 +71,9 @@ export default function MfaResetFlowPage() {
         setError('An unexpected error occurred.');
       } finally {
         setIsLoading(false);
-        // remove both query and hash
         window.history.replaceState(null, '', window.location.pathname);
       }
-    };
-
-    init(token);
+    })(token);
   }, []);
 
   const handleVerifySubmit = async (e: React.FormEvent) => {
@@ -129,9 +123,10 @@ export default function MfaResetFlowPage() {
             </div>
             <form onSubmit={handleVerifySubmit} className="space-y-4 pt-2">
               <input
-                type="text"
+                type="tel"
                 inputMode="numeric"
-                pattern="\\d{6}"
+                pattern="[0-9]{6}"
+                title="Please enter exactly 6 digits"
                 maxLength={6}
                 value={code}
                 onChange={e => setCode(e.target.value.replace(/\D/g, ''))}

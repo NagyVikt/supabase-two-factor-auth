@@ -42,6 +42,15 @@ You can enable MFA under **Settings** after signing in.
 Click **Enable 2FA**, scan the generated QR code in any authenticator app,
 then verify the one-time code to secure your account.
 
+### Prisma-backed MFA example
+
+If you prefer storing MFA secrets in your own database, this repo now includes a
+Prisma implementation under `lib/actions/prismaMfa` and `lib/mfaStorePrisma.ts`.
+After running `npx prisma migrate dev` and `npx prisma generate`, you can call
+`enrollMFA`, `verifyMFA`, `recoverMfa` and `completeRecovery` with the current
+user's ID from your session. Recovery emails are sent via the generic
+`sendEmail` helper.
+
 ## Demo
 
 You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
